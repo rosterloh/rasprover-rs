@@ -11,6 +11,7 @@ ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["i2c"] }
 ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
 ssd1306 = { version = "0.10", features = ["async"] }
 embedded-graphics = "0.8"
+heapless = "0.9.2"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
