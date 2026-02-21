@@ -1,0 +1,46 @@
+{
+  "rust-analyzer.cargo.buildScripts.overrideCommand": [
+    "cargo",
+    "check",
+    "--config",
+    "./build/imports/ariel-os/ariel-os-cargo.toml",
+    "-Zbuild-std=core,alloc",
+    "--features=ariel-os/semihosting,ariel-os/single-core,ariel-os/executor-thread,ariel-os/esp-println,ariel-os/panic-printing,ariel-os/defmt,ariel-os/debug-console,ariel-os/idle-threads",
+    "--message-format=json"
+  ],
+  "rust-analyzer.cargo.features": [
+    "ariel-os/semihosting",
+    "ariel-os/single-core",
+    "ariel-os/executor-thread",
+    "ariel-os/esp-println",
+    "ariel-os/panic-printing",
+    "ariel-os/defmt",
+    "ariel-os/debug-console",
+    "ariel-os/idle-threads"
+  ],
+  "rust-analyzer.check.allTargets": false,
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.extraArgs": [
+    "--config",
+    "./build/imports/ariel-os/ariel-os-cargo.toml",
+    "-Zbuild-std=core,alloc",
+    "--features=ariel-os/semihosting,ariel-os/single-core,ariel-os/executor-thread,ariel-os/esp-println,ariel-os/panic-printing,ariel-os/defmt,ariel-os/debug-console,ariel-os/idle-threads"
+  ],
+  "rust-analyzer.files.watcher": "server",
+  "rust-analyzer.server.extraEnv": {
+    "CARGO_BUILD_TARGET": "xtensa-esp32-none-elf",
+    "CARGO_TARGET_DIR": "./build/bin/espressif-esp32-devkitc/cargo",
+    "CARGO_TARGET_XTENSA_ESP32_NONE_ELF_RUNNER": "espflash flash --monitor --log-format defmt",
+    "CARGO_TARGET_XTENSA_ESP32_NONE_ELF_RUSTFLAGS": "--cfg context=\"espressif-esp32-devkitc\" --cfg context=\"esp-wroom-32\" --cfg context=\"esp32\" --cfg context=\"esp\" --cfg context=\"ariel-os\" --cfg context=\"default\" -Clink-arg=-Tlinkall.x -Cembed-bitcode=yes -Clto=fat -Ccodegen-units=1 -Clink-arg=-Tdefmt.x --cfg context=\"xtensa\" --cfg nightly -Clink-arg=-Tisr_stack_xtensa.x",
+    "CONFIG_BOARD": "espressif-esp32-devkitc",
+    "CONFIG_EXECUTOR_STACKSIZE": "8192",
+    "CONFIG_ISR_STACKSIZE": "32768",
+    "CONFIG_WIFI_NETWORK": "test-wifi",
+    "CONFIG_WIFI_PASSWORD": "test-password",
+    "DEFMT_LOG": "info,",
+    "OPENOCD_ARGS": "",
+    "RUSTFLAGS": "--cfg context=\"espressif-esp32-devkitc\" --cfg context=\"esp-wroom-32\" --cfg context=\"esp32\" --cfg context=\"esp\" --cfg context=\"ariel-os\" --cfg context=\"default\" -Clink-arg=-Tlinkall.x -Cembed-bitcode=yes -Clto=fat -Ccodegen-units=1 -Clink-arg=-Tdefmt.x --cfg context=\"xtensa\" --cfg nightly -Clink-arg=-Tisr_stack_xtensa.x",
+    "RUSTUP_TOOLCHAIN": "esp",
+    "SCRIPTS": "./scripts"
+  }
+}

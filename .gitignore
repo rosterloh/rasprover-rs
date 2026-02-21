@@ -1,0 +1,4 @@
+/target
+/build
+.gdb_history
+.env
