@@ -114,6 +114,8 @@ dependencies = [
  "embassy-nrf",
  "embassy-stm32",
  "embassy-sync 0.7.2",
+ "embassy-time",
+ "embassy-time-queue-utils",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "embedded-io 0.6.1",
@@ -1720,6 +1722,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
 
 [[package]]
+name = "icm20948-async"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6eaee382b9bff1d7efb520812ca33378cf08271352ec8d9a1a041e53861d781c"
+dependencies = [
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2302,8 +2313,11 @@ version = "0.1.0"
 dependencies = [
  "ariel-os",
  "ariel-os-boards",
+ "embassy-sync 0.7.2",
  "embedded-graphics",
  "heapless 0.9.2",
+ "icm20948-async",
+ "once_cell",
  "ssd1306",
 ]
 

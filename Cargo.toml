@@ -7,11 +7,14 @@ repository = "https://github.com/rosterloh/rasprover-rs"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["i2c"] }
+ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["i2c", "time"] }
 ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
 ssd1306 = { version = "0.10", features = ["async"] }
 embedded-graphics = "0.8"
 heapless = "0.9.2"
+icm20948-async = "0.5"
+embassy-sync = "0.7.2"
+once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
