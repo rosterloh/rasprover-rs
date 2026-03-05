@@ -2,12 +2,13 @@
 #![no_std]
 
 mod i2c_bus;
+mod motors;
 mod pins;
 
 use core::fmt::Write as _;
 
 use ariel_os::{
-    debug::log::{debug, info, error},
+    debug::log::{debug, error, info},
     i2c::controller::I2cDevice,
     net,
     time::{Delay, Timer},
@@ -24,7 +25,21 @@ use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306Async};
 
 #[ariel_os::task(autostart, peripherals)]
 async fn main(peripherals: pins::Peripherals) {
-    i2c_bus::init(peripherals);
+    let mut motors = motors::Motors::new(
+        peripherals.ledc,
+        peripherals.motor_ain1,
+        peripherals.motor_ain2,
+        peripherals.motor_pwma,
+        peripherals.motor_bin1,
+        peripherals.motor_bin2,
+        peripherals.motor_pwmb,
+    );
+    info!("Motors initialized");
+    motors.set_velocity(50, 50);
+    Timer::after_millis(500).await;
+    motors.stop();
+
+    i2c_bus::init(peripherals.i2c_sda, peripherals.i2c_scl);
 
     // --- Display ---
     let display_i2c = I2cDevice::new(i2c_bus::I2C_BUS.get().unwrap());
