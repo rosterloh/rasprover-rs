@@ -92,6 +92,36 @@ The build system passes `--cfg context="..."` flags for the target board, chip f
 
 **`i2c_bus::init`** takes individual `GPIO32<'static>` and `GPIO33<'static>` pins (not the whole `Peripherals` struct) to allow partial moves when other pins are claimed first.
 
+## Module Design Patterns
+
+**Encapsulate subsystems as autostart tasks** — each major subsystem (network, sensors, motors) owns its lifecycle in a dedicated `#[ariel_os::task(autostart)]` task and a dedicated `src/<subsystem>.rs` module. `main` coordinates but does not inline subsystem logic.
+
+**Use `Watch` for state broadcasting** — `embassy_sync::watch::Watch` is the preferred primitive for publishing subsystem state to other tasks:
+- Delivers the **current** value to late subscribers (no missed events on join)
+- `try_get()` enables non-blocking polling in tight loops without blocking the caller
+- Declare as a `pub static` in the owning module; other modules call `.receiver().unwrap()`
+- Size N to the number of concurrent receivers needed (e.g. `Watch<..., 2>`)
+
+```rust
+// In the owning module (e.g. src/network.rs):
+pub static NET_STATE: Watch<CriticalSectionRawMutex, NetworkState, 2> = Watch::new();
+
+// In a consumer:
+let mut net_rx = network::NET_STATE.receiver().unwrap();
+if let Some(state) = net_rx.try_get() { /* react */ }
+```
+
+**Carry data in enum variants** — state enums should embed the associated payload directly (e.g. `Up(String<18>)`) rather than storing it separately. This keeps state and data coherent and avoids separate synchronisation.
+
+**Track last-seen state to avoid redundant work** — consumers that perform side effects (display redraws, I/O) should cache the last processed state and only act when it changes:
+```rust
+let mut last_state: Option<NetworkState> = None;
+if Some(&state) != last_state.as_ref() {
+    // redraw / update
+    last_state = Some(state);
+}
+```
+
 ## References
 
 - [Ariel OS Manual](https://ariel-os.github.io/ariel-os/dev/docs/book/introduction.html)

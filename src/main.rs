@@ -3,14 +3,12 @@
 
 mod i2c_bus;
 mod motors;
+mod network;
 mod pins;
-
-use core::fmt::Write as _;
 
 use ariel_os::{
     debug::log::{debug, error, info},
     i2c::controller::I2cDevice,
-    net,
     time::{Delay, Timer},
 };
 use embedded_graphics::{
@@ -19,8 +17,8 @@ use embedded_graphics::{
     prelude::*,
     text::{Baseline, Text},
 };
-use heapless::String;
 use icm20948_async::{AccRange, GyrRange, IcmBuilder, I2cAddress};
+use network::NetworkState;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306Async};
 
 #[ariel_os::task(autostart, peripherals)]
@@ -75,28 +73,31 @@ async fn main(peripherals: pins::Peripherals) {
 
     info!("ICM-20948 initialized");
 
-    // --- Network ---
-    let stack = net::network_stack().await.unwrap();
-    stack.wait_config_up().await;
-
-    if let Some(config) = stack.config_v4() {
-        let mut ip_str: String<18> = String::new();
-        write!(ip_str, "IP: {}", config.address.address()).unwrap();
-
-        display.clear(BinaryColor::Off).unwrap();
-        Text::with_baseline(ver_line, Point::new(0, 0), text_style, Baseline::Top)
-            .draw(&mut display)
-            .unwrap();
-        Text::with_baseline(ip_str.as_str(), Point::new(0, 14), text_style, Baseline::Top)
-            .draw(&mut display)
-            .unwrap();
-        display.flush().await.unwrap();
-
-        info!("IP: {}", ip_str.as_str());
-    }
+    let mut net_rx = network::NET_STATE.receiver().unwrap();
+    let mut last_net_state: Option<NetworkState> = None;
 
     // --- Sensor loop ---
     loop {
+        // Non-blocking check for network state change
+        if let Some(state) = net_rx.try_get() {
+            if Some(&state) != last_net_state.as_ref() {
+                display.clear(BinaryColor::Off).unwrap();
+                Text::with_baseline(ver_line, Point::new(0, 0), text_style, Baseline::Top)
+                    .draw(&mut display)
+                    .unwrap();
+                let status: &str = match &state {
+                    NetworkState::Connecting => "Connecting...",
+                    NetworkState::Up(ip) => ip.as_str(),
+                    NetworkState::Down => "Disconnected",
+                };
+                Text::with_baseline(status, Point::new(0, 14), text_style, Baseline::Top)
+                    .draw(&mut display)
+                    .unwrap();
+                display.flush().await.unwrap();
+                last_net_state = Some(state);
+            }
+        }
+
         match imu.read_9dof().await {
             Ok(data) => debug!(
                 "Accel [{} {} {}] Gyro [{} {} {}] Mag [{} {} {}] Temp {} °C",
