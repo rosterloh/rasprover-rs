@@ -1,5 +1,15 @@
 # CLAUDE.md
 
+## MANDATORY: Use td for Task Management
+
+Run td usage --new-session at conversation start (or after /clear). This tells you what to work on next.
+
+Sessions are automatic (based on terminal/agent context). Optional:
+- td session "name" to label the current session
+- td session --new to force a new session in the same context
+
+Use td usage -q after first read.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
@@ -35,7 +45,7 @@ Rust Analyzer is configured via `.vscode/settings.json` with the correct `RUSTFL
 
 ## Architecture
 
-The codebase is `no_std` + `no_main` — standard library and Rust runtime are unavailable. All code runs in an async executor provided by Ariel OS.
+The codebase is `no_std` + `no_main` — standard library and Rust runtime are unavailable. All code runs in an async executor provided by Ariel OS. However, `alloc` **is** available — the build enables `ariel-os/alloc` and the ESP32 heap is configured, so `Box`, `Vec`, etc. work fine.
 
 **Entry point pattern:**
 ```rust
@@ -69,6 +79,18 @@ Clippy is configured in VS Code settings with the ESP32 build flags. To run manu
 ## cfg Contexts
 
 The build system passes `--cfg context="..."` flags for the target board, chip family, and OS. These are used throughout Ariel OS for conditional compilation. Unexpected cfg warnings are expected and configured to `warn` level in `Cargo.toml`.
+
+## Peripheral Patterns
+
+**Peripherals struct** (`src/pins.rs`) uses `ariel_os::hal::define_peripherals!` which maps friendly names to `hal::peripherals::GPIOxx` types. Each field is a concrete type like `GPIO21<'static>`. Pass individual fields to functions rather than the whole struct when only some pins are needed.
+
+**Ariel OS provides `'static` peripherals** — all peripheral tokens (`GPIO21<'static>`, `LEDC<'static>`, etc.) have `'static` lifetime, which propagates through esp-hal types (`Output<'static>`, `Channel<'static, LowSpeed>`, etc.).
+
+**PWM (LEDC)**: Ariel OS v0.3.0 has no PWM abstraction. Use `esp_hal::ledc` directly with the `unstable` feature. Add `esp-hal = { version = "1.0.0", default-features = false, features = ["unstable"] }` to `Cargo.toml` — the `[patch]` in `ariel-os-cargo.toml` automatically redirects it to the ariel-os fork (`rev = 531c629`). LEDC source is in `~/.cargo/git/checkouts/esp-hal-*/531c629/esp-hal/src/ledc/`.
+
+**Self-referential HAL structs**: `Channel<'a, LowSpeed>` holds a `&'a dyn TimerIFace` so the timer must outlive the channel. Use `Box::leak(Box::new(timer))` to get a `&'static Timer` — this is safe and idiomatic given the always-available heap.
+
+**`i2c_bus::init`** takes individual `GPIO32<'static>` and `GPIO33<'static>` pins (not the whole `Peripherals` struct) to allow partial moves when other pins are claimed first.
 
 ## References
 
