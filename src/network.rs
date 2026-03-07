@@ -25,6 +25,7 @@ async fn network_monitor() {
 
     loop {
         info!("network: connecting...");
+        crate::display::set_line(1, "Connecting...");
         sender.send(NetworkState::Connecting);
         stack.wait_config_up().await;
 
@@ -32,6 +33,7 @@ async fn network_monitor() {
             let mut ip_str: String<18> = String::new();
             write!(ip_str, "{}", config.address.address()).unwrap();
             info!("network: up, IP: {}", ip_str.as_str());
+            crate::display::set_line(1, ip_str.as_str());
             sender.send(NetworkState::Up(ip_str));
         }
 
@@ -40,6 +42,7 @@ async fn network_monitor() {
             Timer::after_secs(5).await;
             if !stack.is_config_up() {
                 warn!("network: down, will reconnect");
+                crate::display::set_line(1, "Disconnected");
                 sender.send(NetworkState::Down);
                 break;
             }
