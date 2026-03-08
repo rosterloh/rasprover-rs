@@ -25,6 +25,9 @@ async fn main(peripherals: pins::Peripherals) {
         peripherals.motor_bin1,
         peripherals.motor_bin2,
         peripherals.motor_pwmb,
+        peripherals.pcnt,
+        peripherals.enc_left,
+        peripherals.enc_right,
     );
     info!("Motors initialized");
     motors.set_velocity(50, 50);

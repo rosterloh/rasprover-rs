@@ -14,4 +14,7 @@ ariel_os::hal::define_peripherals!(Peripherals {
     motor_bin2: GPIO23,
     motor_pwmb: GPIO26,
     ledc: LEDC,
+    pcnt: PCNT,
+    enc_left: GPIO35, // AENCB 34
+    enc_right: GPIO16, // BENCA 27
 });
