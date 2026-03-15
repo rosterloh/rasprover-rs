@@ -6,19 +6,74 @@ edition = "2024"
 repository = "https://github.com/rosterloh/rasprover-rs"
 license = "MIT OR Apache-2.0"
 
-[dependencies]
-ariel-os = { path = "build/imports/ariel-os/src/ariel-os", features = ["i2c", "time"] }
-esp-hal = { version = "1.0.0", default-features = false, features = ["unstable"] }
-ariel-os-boards = { path = "build/imports/ariel-os/src/ariel-os-boards" }
-ssd1306 = { version = "0.10", features = ["async"] }
-embedded-graphics = "0.8"
-heapless = "0.9.2"
-icm20948-async = "0.5"
-embassy-sync = "0.7.2"
-once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-critical-section = "1.0"
+[[bin]]
+name = "rasprover"
+path = "./src/bin/main.rs"
+test = false
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-  'cfg(context, values(any()))',
+[[test]]
+harness = false
+name = "hello_test"
+
+[lib]
+test = false
+
+[dependencies]
+critical-section = "1.0"
+defmt = "1.0"
+embassy-embedded-hal = { version = "0.5.0", features = ["defmt", "time"] }
+embassy-executor = { version = "0.9.1", features = ["defmt"] }
+embassy-net = { version = "0.8.0", features = ["defmt", "dhcpv4", "medium-ethernet", "tcp", "udp"] }
+embassy-sync = { version = "0.7.2", features = ["defmt"] }
+embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime"] }
+embedded-graphics = "0.8"
+embedded-io = { version = "0.7.1", features = ["defmt"] }
+embedded-io-async = { version = "0.7.0", features = ["defmt"] }
+esp-alloc = { version = "0.9.0", features = ["defmt"] }
+esp-bootloader-esp-idf = { version = "0.4.0", features = ["defmt", "esp32"] }
+esp-hal = { version = "1.0.0", default-features = false, features = ["defmt", "esp32", "unstable"] }
+esp-radio = { version = "0.17.0", features = ["defmt", "esp32", "esp-alloc", "smoltcp", "unstable", "wifi"] }
+esp-rtos = { version = "0.2.0", features = ["defmt", "embassy", "esp32", "esp-alloc", "esp-radio"] }
+heapless = { version = "0.9.2", default-features = false, features = ["defmt", "embedded-io-v0.7"] }
+icm20948-async = "0.5"
+once_cell = { version = "1", default-features = false, features = ["critical-section"] }
+panic-rtt-target = { version = "0.2.0", features = ["defmt"] }
+rtt-target = { version = "0.6.2", features = ["defmt"] }
+# for more networking protocol support see https://crates.io/crates/edge-net
+smoltcp = { version = "0.12.0", default-features = false, features = [
+  "defmt",
+  "medium-ethernet",
+  "multicast",
+  "proto-dhcpv4",
+  "proto-dns",
+  "proto-ipv4",
+  "socket-dns",
+  "socket-icmp",
+  "socket-raw",
+  "socket-tcp",
+  "socket-udp",
 ] }
+ssd1306 = { version = "0.10", features = ["async"] }
+static_cell = "2.1.0"
+
+[dev-dependencies]
+embedded-test = { version = "0.7.0", features = [
+  "defmt",
+  "embassy",
+  "external-executor",
+  "xtensa-semihosting",
+] }
+
+[profile.dev]
+# Rust debug is too slow.
+# For debug builds always builds with some optimization
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1 # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = "s"
+overflow-checks = false
