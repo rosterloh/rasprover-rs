@@ -1,38 +1,25 @@
 # CLAUDE.md
 
-## MANDATORY: Use td for Task Management
-
-Run td usage --new-session at conversation start (or after /clear). This tells you what to work on next.
-
-Sessions are automatic (based on terminal/agent context). Optional:
-- td session "name" to label the current session
-- td session --new to force a new session in the same context
-
-Use td usage -q after first read.
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
-RaspRover-RS is embedded firmware for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover) robot platform, targeting an Espressif ESP32 DevKit-C (Xtensa architecture). It uses [Ariel OS](https://ariel-os.github.io/ariel-os/dev/docs/book/introduction.html) v0.3.0 as the embedded OS framework, which wraps [Embassy](https://embassy.dev/book/) for async/await support.
+RaspRover-RS is embedded firmware for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover) robot platform, targeting an Espressif ESP32 DevKit-C (Xtensa architecture). It uses [esp-rtos](https://github.com/ariel-os/esp-hal) with [Embassy](https://embassy.dev/book/) for async/await support. All esp-hal family crates are pinned to the ariel-os fork at `rev = 531c629`.
 
 ## Build Commands
 
-The project uses **Laze** as a meta-build system on top of Cargo. Standard `cargo build` will not work directly.
+Standard Cargo is used directly — no meta-build system required.
 
 ```bash
-# Build and flash to connected ESP32
-laze build -b espressif-esp32-devkitc run
+# Build only
+cargo build --release
 
-# Build only (no flash)
-laze build -b espressif-esp32-devkitc
+# Build and flash to connected ESP32
+cargo run --release
 ```
 
-Before building, WiFi credentials must be configured:
+WiFi credentials are configured via environment variables (with fallback defaults in `.cargo/config.toml`):
 ```bash
-cp .env.example .env
-# Edit .env with your WiFi SSID and password
-source .env
+export CONFIG_WIFI_NETWORK="your-ssid"
+export CONFIG_WIFI_PASSWORD="your-password"
 ```
 
 ## Toolchain
@@ -45,62 +32,105 @@ Rust Analyzer is configured via `.vscode/settings.json` with the correct `RUSTFL
 
 ## Architecture
 
-The codebase is `no_std` + `no_main` — standard library and Rust runtime are unavailable. All code runs in an async executor provided by Ariel OS. However, `alloc` **is** available — the build enables `ariel-os/alloc` and the ESP32 heap is configured, so `Box`, `Vec`, etc. work fine.
+The codebase is `no_std` + `no_main` — standard library and Rust runtime are unavailable. All async code runs in the Embassy executor provided by `esp-rtos`. However, `alloc` **is** available — the heap is configured with `esp_alloc::heap_allocator!`, so `Box`, `Vec`, etc. work fine.
 
 **Entry point pattern:**
 ```rust
-#[ariel_os::task(autostart)]
-async fn main() {
+#![no_main]
+#![no_std]
+
+extern crate alloc;
+
+esp_bootloader_esp_idf::esp_app_desc!();
+
+#[esp_rtos::main]
+async fn main(spawner: Spawner) {
+    rtt_target::rtt_init_defmt!();
+
+    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
+    let p = esp_hal::init(config);
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 98768);
+
+    let timg0 = TimerGroup::new(p.TIMG0);
+    esp_rtos::start(timg0.timer0);
+
     // application code
 }
 ```
 
+`esp_rtos::start(...)` must be called **inside** the async main function after heap init. `SoftwareInterruptControl` is no longer required — `esp_rtos::start` takes only the timer.
+
 **Key dependency structure:**
-- `ariel-os` (path: `build/imports/ariel-os/src/ariel-os`) — the top-level OS crate
-- `ariel-os-boards` — board support for ESP32 DevKit-C
-- Both are vendored locally under `build/imports/ariel-os/` (imported by Laze from GitHub)
+- `esp-rtos` — async runtime (Embassy executor + timer integration)
+- `esp-radio` — WiFi via `esp_radio::wifi`
+- `embassy-net` — TCP/IP networking
+- `embassy-sync` — synchronisation primitives (`Watch`, `Mutex`, etc.)
+- All esp-hal family crates are patched to `git = "https://github.com/ariel-os/esp-hal", rev = "531c629..."`
 
-**Cargo configuration** (`.cargo/config.toml`) includes the Ariel OS cargo config via an unstable `config-include` feature. This sets the build target, linker arguments, and other embedded build settings.
-
-**Feature selection** for Ariel OS capabilities (threading, networking, storage, etc.) is done in `laze-project.yml` via `selects:` and in `Cargo.toml` via `features = []` on the `ariel-os` dependency.
+**Cargo configuration** (`.cargo/config.toml`) is self-contained — no external includes. Sets the build target, linker arguments, `build-std`, and WiFi credential defaults.
 
 ## Logging
 
-Uses `defmt` structured logging. Log level is controlled by the `DEFMT_LOG` environment variable (default: `info` in VS Code settings). Use macros from `ariel_os::debug::log`:
+Uses `defmt` structured logging via RTT. Log level is controlled by the `DEFMT_LOG` environment variable (default: `info` in `.cargo/config.toml`). Import macros directly from `defmt`:
 ```rust
-use ariel_os::debug::log::info;
+use defmt::{debug, error, info, warn};
+use panic_rtt_target as _;
 info!("message {}", value);
 ```
 
-## Linting
+Initialize RTT at the top of `main` before any logging:
+```rust
+rtt_target::rtt_init_defmt!();
+```
 
-Clippy is configured in VS Code settings with the ESP32 build flags. To run manually, you need the full set of `RUSTFLAGS` and environment variables matching those in `.vscode/settings.json`.
-
-## cfg Contexts
-
-The build system passes `--cfg context="..."` flags for the target board, chip family, and OS. These are used throughout Ariel OS for conditional compilation. Unexpected cfg warnings are expected and configured to `warn` level in `Cargo.toml`.
+The panic handler is provided by `panic-rtt-target`. The `rtt-target` crate (with `features = ["defmt"]`) provides the transport.
 
 ## Peripheral Patterns
 
-**Peripherals struct** (`src/pins.rs`) uses `ariel_os::hal::define_peripherals!` which maps friendly names to `hal::peripherals::GPIOxx` types. Each field is a concrete type like `GPIO21<'static>`. Pass individual fields to functions rather than the whole struct when only some pins are needed.
+**Peripherals struct** (`src/pins.rs`) is a plain Rust struct. Use concrete peripheral types from `esp_hal::peripherals` for typed pins and `AnyPin<'static>` (via `.into()`) for interchangeable pins:
+```rust
+pub struct Peripherals {
+    pub i2c_sda: GPIO32<'static>,
+    pub i2c_scl: GPIO33<'static>,
+    pub motor_ain1: AnyPin<'static>,  // p.GPIO21.into()
+    // ...
+}
+```
 
-**Ariel OS provides `'static` peripherals** — all peripheral tokens (`GPIO21<'static>`, `LEDC<'static>`, etc.) have `'static` lifetime, which propagates through esp-hal types (`Output<'static>`, `Channel<'static, LowSpeed>`, etc.).
+**All peripherals have `'static` lifetime** — `GPIO21<'static>`, `LEDC<'static>`, etc. This propagates through esp-hal types (`Output<'static>`, `Channel<'static, LowSpeed>`, etc.).
 
-**PWM (LEDC)**: Ariel OS v0.3.0 has no PWM abstraction. Use `esp_hal::ledc` directly with the `unstable` feature. Add `esp-hal = { version = "1.0.0", default-features = false, features = ["unstable"] }` to `Cargo.toml` — the `[patch]` in `ariel-os-cargo.toml` automatically redirects it to the ariel-os fork (`rev = 531c629`). LEDC source is in `~/.cargo/git/checkouts/esp-hal-*/531c629/esp-hal/src/ledc/`.
+**PWM (LEDC)**: Use `esp_hal::ledc` directly with the `unstable` feature. The `[patch]` in `Cargo.toml` redirects to the ariel-os fork. LEDC source is in `~/.cargo/git/checkouts/esp-hal-*/531c629/esp-hal/src/ledc/`.
 
-**Self-referential HAL structs**: `Channel<'a, LowSpeed>` holds a `&'a dyn TimerIFace` so the timer must outlive the channel. Use `Box::leak(Box::new(timer))` to get a `&'static Timer` — this is safe and idiomatic given the always-available heap.
+**Self-referential HAL structs**: `Channel<'a, LowSpeed>` holds a `&'a dyn TimerIFace` so the timer must outlive the channel. Use `Box::leak(Box::new(timer))` to get a `&'static Timer` — this is safe given the always-available heap.
 
-**`i2c_bus::init`** takes individual `GPIO32<'static>` and `GPIO33<'static>` pins (not the whole `Peripherals` struct) to allow partial moves when other pins are claimed first.
+**I2C**: Use `esp_hal::i2c::master::I2c` directly:
+```rust
+I2c::new(i2c0, config).unwrap().with_sda(sda).with_scl(scl).into_async()
+```
+Wrap with `embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice` for sharing across tasks.
+
+**Rng**: `Rng::new()` — no arguments.
+
+## WiFi Pattern
+
+WiFi is initialized in `network::init()`:
+```rust
+let (controller, interfaces) = esp_radio::wifi::new(wifi, Config::default()).unwrap();
+let wifi_device: WifiDevice<'static> = interfaces.station;
+```
+- `controller.is_connected()` — check connection status
+- `controller.set_config(&ModeConfig::Station(config))` — configure
+- `StationConfig::default().with_ssid(String).with_password(String)` — uses `alloc::string::String`
 
 ## Module Design Patterns
 
-**Encapsulate subsystems as autostart tasks** — each major subsystem (network, sensors, motors) owns its lifecycle in a dedicated `#[ariel_os::task(autostart)]` task and a dedicated `src/<subsystem>.rs` module. `main` coordinates but does not inline subsystem logic.
+**Encapsulate subsystems as spawned tasks** — each major subsystem (network, display, etc.) owns its lifecycle via `#[embassy_executor::task]` functions and a dedicated `src/<subsystem>.rs` module. `main` coordinates but does not inline subsystem logic.
 
 **Use `Watch` for state broadcasting** — `embassy_sync::watch::Watch` is the preferred primitive for publishing subsystem state to other tasks:
 - Delivers the **current** value to late subscribers (no missed events on join)
-- `try_get()` enables non-blocking polling in tight loops without blocking the caller
-- Declare as a `pub static` in the owning module; other modules call `.receiver().unwrap()`
-- Size N to the number of concurrent receivers needed (e.g. `Watch<..., 2>`)
+- `try_get()` enables non-blocking polling in tight loops
+- Declare as a `pub static` in the owning module; consumers call `.receiver().unwrap()`
+- Size N to the number of concurrent receivers needed
 
 ```rust
 // In the owning module (e.g. src/network.rs):
@@ -111,9 +141,9 @@ let mut net_rx = network::NET_STATE.receiver().unwrap();
 if let Some(state) = net_rx.try_get() { /* react */ }
 ```
 
-**Carry data in enum variants** — state enums should embed the associated payload directly (e.g. `Up(String<18>)`) rather than storing it separately. This keeps state and data coherent and avoids separate synchronisation.
+**Carry data in enum variants** — state enums should embed associated payload directly (e.g. `Up(String<18>)`) rather than storing it separately.
 
-**Track last-seen state to avoid redundant work** — consumers that perform side effects (display redraws, I/O) should cache the last processed state and only act when it changes:
+**Track last-seen state to avoid redundant work** — consumers that perform side effects should cache the last processed state and only act when it changes:
 ```rust
 let mut last_state: Option<NetworkState> = None;
 if Some(&state) != last_state.as_ref() {
@@ -124,7 +154,6 @@ if Some(&state) != last_state.as_ref() {
 
 ## References
 
-- [Ariel OS Manual](https://ariel-os.github.io/ariel-os/dev/docs/book/introduction.html)
-- [Ariel OS examples](build/imports/ariel-os/examples/) — useful reference for adding features
 - [Embassy Book](https://embassy.dev/book/)
+- [esp-hal docs](https://docs.esp-rs.org/esp-hal/)
 - [Embedded Rust Book](https://docs.rust-embedded.org/book/)

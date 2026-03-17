@@ -1,5 +1,16 @@
-include = ["../build/imports/ariel-os/ariel-os-cargo.toml"]
+[target.xtensa-esp32-none-elf]
+runner = "probe-rs run --chip=esp32 --preverify --always-print-stacktrace --no-location --catch-hardfault"
+
+[build]
+rustflags = [
+  "-C", "link-arg=-nostartfiles",
+]
+target = "xtensa-esp32-none-elf"
 
 [unstable]
-# This is needed so the "include" statement above works.
-config-include = true
+build-std = ["core", "alloc"]
+
+[env]
+DEFMT_LOG="info"
+CONFIG_WIFI_NETWORK  = { value = "your-ssid",     force = false }
+CONFIG_WIFI_PASSWORD = { value = "your-password", force = false }

@@ -2,18 +2,35 @@
 
 ### Setup
 
-Setup according to the [Ariel OS getting started](https://ariel-os.github.io/ariel-os/dev/docs/book/getting-started.html) guide.
-Copy the [.env.example](.env.example) file to `.env` and make your modifications. Source `.env` before building.
+Setup according to the [Rust on ESP Getting Started](https://docs.espressif.com/projects/rust/book/getting-started/index.html) guide.
+
+```bash
+cargo install espup --locked
+espup install
+cargo install espflash --locked
+cargo install --locked probe-rs-tools
+```
+
+Copy the [.env.example](.env.example) file to `.env` and make your modifications. Source `~/export-esp.sh` and `.env` before building.
 
 ### Building
 
 ```bash
-laze build -b espressif-esp32-devkitc run
+source ~/export-esp.sh
+source .env
+cargo build --release
+```
+
+### Flashing
+
+```bash
+source .env
+cargo run --release
 ```
 
 ### Useful Links
 
 - [Waveshare Wiki](https://www.waveshare.com/wiki/RaspRover)
-- [Ariel OS manual](https://ariel-os.github.io/ariel-os/dev/docs/book/introduction.html)
-- [Embedded Rust Book](https://docs.rust-embedded.org/book/)
+- [Rust on ESP Book](https://docs.espressif.com/projects/rust/book/)
 - [Embassy Book](https://embassy.dev/book/)
+- [Embedded Rust Book](https://docs.rust-embedded.org/book/)
