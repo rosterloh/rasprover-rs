@@ -15,7 +15,7 @@ use esp_hal::{clock::CpuClock, rng::Rng, timer::timg::TimerGroup};
 use icm20948_async::{AccRange, GyrRange, I2cAddress, IcmBuilder};
 use network::NetworkState;
 use panic_rtt_target as _;
-use rasprover_rs::{board, display, motors, network};
+use rasprover_rs::{board, display, imu::ImuKalmanFilter, motors, network};
 
 extern crate alloc;
 
@@ -86,6 +86,7 @@ async fn main(spawner: Spawner) {
         .unwrap();
     info!("ICM-20948 initialised");
 
+    let mut imu_filter = ImuKalmanFilter::new();
     let mut net_state_rx = network::NET_STATE.receiver().unwrap();
     let mut last_net_state: Option<NetworkState> = None;
 
@@ -97,19 +98,22 @@ async fn main(spawner: Spawner) {
 
             if let NetworkState::Up(_) = state {
                 match imu.read_9dof().await {
-                    Ok(data) => debug!(
-                        "Accel [{} {} {}] Gyro [{} {} {}] Mag [{} {} {}] Temp {} °C",
-                        data.acc[0],
-                        data.acc[1],
-                        data.acc[2],
-                        data.gyr[0],
-                        data.gyr[1],
-                        data.gyr[2],
-                        data.mag[0],
-                        data.mag[1],
-                        data.mag[2],
-                        data.tmp
-                    ),
+                    Ok(data) => {
+                        let filtered = imu_filter.update(data.acc, data.gyr, data.mag, data.tmp);
+                        debug!(
+                            "Accel [{} {} {}] Gyro [{} {} {}] Mag [{} {} {}] Temp {} °C",
+                            filtered.acc[0],
+                            filtered.acc[1],
+                            filtered.acc[2],
+                            filtered.gyr[0],
+                            filtered.gyr[1],
+                            filtered.gyr[2],
+                            filtered.mag[0],
+                            filtered.mag[1],
+                            filtered.mag[2],
+                            filtered.tmp
+                        );
+                    }
                     Err(_) => error!("IMU read error"),
                 }
             } else {
