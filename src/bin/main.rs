@@ -10,12 +10,12 @@
 use defmt::{debug, error, info};
 use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::Spawner;
-use embassy_time::Timer;
+use embassy_time::{Instant, Timer};
 use esp_hal::{clock::CpuClock, rng::Rng, timer::timg::TimerGroup};
 use icm20948_async::{AccRange, GyrRange, I2cAddress, IcmBuilder};
 use network::NetworkState;
 use panic_rtt_target as _;
-use rasprover_rs::{board, display, motors, network};
+use rasprover_rs::{board, display, imu, motors, network};
 
 extern crate alloc;
 
@@ -86,6 +86,9 @@ async fn main(spawner: Spawner) {
         .unwrap();
     info!("ICM-20948 initialised");
 
+    let mut imu_processor = imu::ImuProcessor::new();
+    let mut last_imu_instant = Instant::now();
+
     let mut net_state_rx = network::NET_STATE.receiver().unwrap();
     let mut last_net_state: Option<NetworkState> = None;
 
@@ -96,20 +99,31 @@ async fn main(spawner: Spawner) {
             }
 
             if let NetworkState::Up(_) = state {
+                let now = Instant::now();
+                let dt = now.duration_since(last_imu_instant).as_micros() as f32 / 1_000_000.0;
+                last_imu_instant = now;
+
                 match imu.read_9dof().await {
-                    Ok(data) => debug!(
-                        "Accel [{} {} {}] Gyro [{} {} {}] Mag [{} {} {}] Temp {} °C",
-                        data.acc[0],
-                        data.acc[1],
-                        data.acc[2],
-                        data.gyr[0],
-                        data.gyr[1],
-                        data.gyr[2],
-                        data.mag[0],
-                        data.mag[1],
-                        data.mag[2],
-                        data.tmp
-                    ),
+                    Ok(data) => {
+                        let processed =
+                            imu_processor.update(data.acc, data.gyr, data.mag, data.tmp, dt);
+                        debug!(
+                            "Accel [{} {} {}] Gyro [{} {} {}] Mag [{} {} {}] Temp {} °C | Roll {} Pitch {} Yaw {}",
+                            processed.acc[0],
+                            processed.acc[1],
+                            processed.acc[2],
+                            processed.gyr[0],
+                            processed.gyr[1],
+                            processed.gyr[2],
+                            processed.mag[0],
+                            processed.mag[1],
+                            processed.mag[2],
+                            processed.tmp,
+                            processed.roll,
+                            processed.pitch,
+                            processed.yaw,
+                        );
+                    }
                     Err(_) => error!("IMU read error"),
                 }
             } else {
