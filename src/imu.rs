@@ -163,15 +163,20 @@ impl MahonyFilter {
         let mut my = mag[1];
         let mut mz = mag[2];
 
-        // Normalise accelerometer — skip attitude update if stationary/degenerate.
+        // Normalise accelerometer — skip accel correction if vector is degenerate.
         let norm_a = sqrtf(ax * ax + ay * ay + az * az);
-        if norm_a < 1e-6 {
-            return self.euler_angles();
+        if norm_a >= 1e-6 {
+            let inv_a = 1.0 / norm_a;
+            ax *= inv_a;
+            ay *= inv_a;
+            az *= inv_a;
+        } else {
+            // Degenerate accelerometer: neutralise its contribution while
+            // still allowing gyro integration to proceed.
+            ax = 0.0;
+            ay = 0.0;
+            az = 0.0;
         }
-        let inv_a = 1.0 / norm_a;
-        ax *= inv_a;
-        ay *= inv_a;
-        az *= inv_a;
 
         // Normalise magnetometer — fall back to 6-DOF if degenerate.
         let norm_m = sqrtf(mx * mx + my * my + mz * mz);
