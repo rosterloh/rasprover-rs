@@ -13,15 +13,15 @@ test = false
 
 [[test]]
 harness = false
-name = "hello_test"
-
-[[test]]
-harness = false
 name = "network_state_test"
 
 [[test]]
 harness = false
 name = "display_test"
+
+[[test]]
+harness = false
+name = "imu_test"
 
 [lib]
 test = false
