@@ -1,5 +1,6 @@
 /firmware/target
 /firmware/.env
+/.env
 /build
 .gdb_history
 .claude/*.local.json

@@ -23,14 +23,6 @@ name = "display_test"
 harness = false
 name = "imu_test"
 
-[[test]]
-harness = false
-name = "network_state_test"
-
-[[test]]
-harness = false
-name = "display_test"
-
 [lib]
 test = false
 

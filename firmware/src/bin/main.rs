@@ -19,10 +19,8 @@ use esp_storage::FlashStorage;
 use icm20948_async::{AccRange, GyrRange, I2cAddress, IcmBuilder};
 use network::NetworkState;
 use panic_rtt_target as _;
-use rasprover_rs::ota::{
-    Error as OtaError, run_with_ota, set_next_ota_slot, validate_current_ota_slot,
-};
-use rasprover_rs::utils::{log_banner, or_str};
+use rasprover_rs::ota::{Error as OtaError, run_with_ota, validate_current_ota_slot};
+use rasprover_rs::utils::log_banner;
 use rasprover_rs::{board, display, imu, motors, network};
 
 extern crate alloc;

@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "firmware/**"
+      - "pixi.toml"
+      - "pixi.lock"
+      - ".github/workflows/ci.yml"
+
+jobs:
+  firmware:
+    name: Build firmware
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@v0.8.5
+        with:
+          environments: firmware
+          cache: true
+
+      - name: Cache esp toolchain
+        id: cache-esp
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup/toolchains/esp
+            ~/.cargo/bin/espup
+            ~/export-esp.sh
+          key: esp-toolchain-${{ runner.os }}-${{ hashFiles('firmware/rust-toolchain.toml') }}
+
+      - name: Install esp toolchain
+        if: steps.cache-esp.outputs.cache-hit != 'true'
+        run: cargo install espup --locked && espup install
+
+      - name: Build firmware
+        run: pixi run -e firmware build
