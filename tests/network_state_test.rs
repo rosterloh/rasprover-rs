@@ -18,7 +18,10 @@ mod tests {
     fn init() {
         let peripherals = esp_hal::init(esp_hal::Config::default());
         let timg1 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG1);
-        esp_rtos::start(timg1.timer0);
+        let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(
+            peripherals.SW_INTERRUPT,
+        );
+        esp_rtos::start(timg1.timer0, sw_int.software_interrupt0);
         rtt_target::rtt_init_defmt!();
     }
 

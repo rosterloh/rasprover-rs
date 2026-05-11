@@ -2,15 +2,14 @@ extern crate alloc;
 
 use core::fmt::Write as _;
 
-use alloc::string::ToString;
+use alloc::string::String as AllocString;
 use defmt::{info, warn};
 use embassy_executor::Spawner;
 use embassy_net::{Runner, Stack, StackResources};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::Timer;
 use esp_hal::rng::Rng;
-use esp_radio::Controller;
-use esp_radio::wifi::{ClientConfig, ModeConfig, WifiController, WifiDevice, WifiEvent};
+use esp_radio::wifi::{Config, Interface, WifiController, sta::StationConfig};
 use heapless::String;
 use static_cell::StaticCell;
 
@@ -24,7 +23,6 @@ pub enum NetworkState {
     Down,
 }
 
-static WIFI_RADIO: StaticCell<Controller> = StaticCell::new();
 pub static NET_STATE: Watch<CriticalSectionRawMutex, NetworkState, 2> = Watch::new();
 
 pub fn init(
@@ -32,12 +30,10 @@ pub fn init(
     rng: Rng,
     spawner: Spawner,
 ) -> Stack<'static> {
-    let esp_radio_ctrl =
-        &*WIFI_RADIO.init(esp_radio::init().expect("Failed to initialise Wi-Fi/BLE controller"));
-    let (controller, interfaces) = esp_radio::wifi::new(&esp_radio_ctrl, wifi, Default::default())
+    let (controller, interfaces) = esp_radio::wifi::new(wifi, Default::default())
         .expect("Failed to initialise Wi-Fi controller");
     let seed = (rng.random() as u64) << 32 | rng.random() as u64;
-    let wifi_device: WifiDevice<'static> = interfaces.sta;
+    let wifi_device: Interface<'static> = interfaces.station;
 
     static RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
     let (stack, runner) = embassy_net::new(
@@ -47,34 +43,36 @@ pub fn init(
         seed,
     );
 
-    spawner.spawn(wifi_connection_task(controller)).ok();
-    spawner.spawn(net_runner_task(runner)).ok();
-    spawner.spawn(network_monitor(stack)).ok();
+    spawner.spawn(wifi_connection_task(controller).unwrap());
+    spawner.spawn(net_runner_task(runner).unwrap());
+    spawner.spawn(network_monitor(stack).unwrap());
 
     stack
 }
 
 #[embassy_executor::task]
 async fn wifi_connection_task(mut controller: WifiController<'static>) {
+    let station_config = Config::Station(
+        StationConfig::default()
+            .with_ssid(SSID)
+            .with_password(AllocString::from(PASSWORD)),
+    );
+
+    if let Err(e) = controller.set_config(&station_config) {
+        warn!("wifi: set_config failed: {:?}", e);
+        return;
+    }
+    info!("wifi: configured for {}", SSID);
+
     loop {
-        if matches!(controller.is_connected(), Ok(true)) {
-            controller.wait_for_event(WifiEvent::StaDisconnected).await;
+        if controller.is_connected() {
+            let _ = controller.wait_for_disconnect_async().await;
             info!("wifi: disconnected");
-        }
-
-        let config = ClientConfig::default()
-            .with_ssid(SSID.to_string())
-            .with_password(PASSWORD.to_string());
-        controller.set_config(&ModeConfig::Client(config)).unwrap();
-
-        if !matches!(controller.is_started(), Ok(true)) {
-            controller.start_async().await.unwrap();
-            info!("wifi: started");
         }
 
         info!("wifi: connecting to {}", SSID);
         match controller.connect_async().await {
-            Ok(()) => info!("wifi: connected"),
+            Ok(_) => info!("wifi: connected"),
             Err(e) => {
                 warn!("wifi: connect failed: {:?}", e);
                 Timer::after_millis(500).await;
@@ -84,7 +82,7 @@ async fn wifi_connection_task(mut controller: WifiController<'static>) {
 }
 
 #[embassy_executor::task]
-async fn net_runner_task(mut runner: Runner<'static, WifiDevice<'static>>) {
+async fn net_runner_task(mut runner: Runner<'static, Interface<'static>>) {
     runner.run().await;
 }
 

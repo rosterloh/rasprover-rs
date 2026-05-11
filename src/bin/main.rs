@@ -11,7 +11,10 @@ use defmt::{debug, error, info};
 use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::Spawner;
 use embassy_time::{Instant, Timer};
-use esp_hal::{clock::CpuClock, rng::Rng, timer::timg::TimerGroup};
+use esp_hal::{
+    clock::CpuClock, interrupt::software::SoftwareInterruptControl, rng::Rng,
+    timer::timg::TimerGroup,
+};
 use esp_storage::FlashStorage;
 use icm20948_async::{AccRange, GyrRange, I2cAddress, IcmBuilder};
 use network::NetworkState;
@@ -59,7 +62,8 @@ async fn main(spawner: Spawner) {
     }
 
     let timg0 = TimerGroup::new(p.TIMG0);
-    esp_rtos::start(timg0.timer0);
+    let sw_int = SoftwareInterruptControl::new(p.SW_INTERRUPT);
+    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
     let pins = board::Peripherals {
         i2c_sda: p.GPIO32,
@@ -96,7 +100,7 @@ async fn main(spawner: Spawner) {
 
     board::init(pins.i2c0, pins.i2c_sda, pins.i2c_scl);
     display::set_line(0, concat!("RaspRover v", env!("CARGO_PKG_VERSION")));
-    spawner.spawn(display::display_task()).ok();
+    spawner.spawn(display::display_task().unwrap());
 
     let rng = Rng::new();
     network::init(p.WIFI, rng, spawner);

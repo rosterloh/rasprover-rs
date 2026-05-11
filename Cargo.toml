@@ -30,22 +30,22 @@ test = false
 critical-section = "1.0"
 defmt = "1.0"
 ekv = { version = "1.0.0", features = ["defmt"] }
-embassy-embedded-hal = { version = "0.5.0", features = ["defmt", "time"] }
-embassy-executor = { version = "0.9.1", features = ["defmt"] }
-embassy-net = { version = "0.8.0", features = ["defmt", "dhcpv4", "medium-ethernet", "tcp", "udp"] }
-embassy-sync = { version = "0.7.2", features = ["defmt"] }
+embassy-embedded-hal = { version = "0.6.0", features = ["defmt", "time"] }
+embassy-executor = { version = "0.10.0", features = ["defmt"] }
+embassy-net = { version = "0.9.1", features = ["defmt", "dhcpv4", "medium-ethernet", "tcp", "udp"] }
+embassy-sync = { version = "0.8.0", features = ["defmt"] }
 embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime"] }
 embedded-graphics = "0.8"
 embedded-io = { version = "0.7.1", features = ["defmt"] }
 embedded-io-async = { version = "0.7.0", features = ["defmt"] }
 embedded-storage = "0.3.1"
 embedded-storage-async = "0.4.1"
-esp-alloc = { version = "0.9.0", features = ["defmt"] }
-esp-bootloader-esp-idf = { version = "0.4.0", features = ["defmt", "esp32"] }
-esp-hal = { version = "1.0.0", default-features = false, features = ["defmt", "esp32", "unstable"] }
-esp-radio = { version = "0.17.0", features = ["defmt", "esp32", "esp-alloc", "smoltcp", "unstable", "wifi"] }
-esp-rtos = { version = "0.2.0", features = ["defmt", "embassy", "esp32", "esp-alloc", "esp-radio"] }
-esp-storage = { version = "0.8.1", features = ["defmt", "esp32"] }
+esp-alloc = { version = "0.10.0", features = ["defmt"] }
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["defmt", "esp32"] }
+esp-hal = { version = "1.1.1", default-features = false, features = ["defmt", "esp32", "unstable"] }
+esp-radio = { version = "0.18.0", features = ["defmt", "esp32", "esp-alloc", "unstable", "wifi"] }
+esp-rtos = { version = "0.3.0", features = ["defmt", "embassy", "esp32", "esp-alloc", "esp-radio"] }
+esp-storage = { version = "0.9.0", features = ["defmt", "esp32"] }
 heapless = { version = "0.9.2", default-features = false, features = ["defmt", "embedded-io-v0.7"] }
 icm20948-async = "0.6"
 libm = { version = "0.2", default-features = false }
@@ -53,7 +53,7 @@ once_cell = { version = "1", default-features = false, features = ["critical-sec
 panic-rtt-target = { version = "0.2.0", features = ["defmt"] }
 rtt-target = { version = "0.6.2", features = ["defmt"] }
 # for more networking protocol support see https://crates.io/crates/edge-net
-smoltcp = { version = "0.12.0", default-features = false, features = [
+smoltcp = { version = "0.13.1", default-features = false, features = [
   "defmt",
   "medium-ethernet",
   "multicast",
@@ -72,7 +72,7 @@ static_cell = "2.1.0"
 [dev-dependencies]
 embedded-test = { version = "0.7.0", features = [
   "defmt",
-  "embassy",
+  "embassy-010",
   "external-executor",
   "xtensa-semihosting",
 ] }
