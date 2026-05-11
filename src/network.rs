@@ -17,7 +17,7 @@ use static_cell::StaticCell;
 const SSID: &str = env!("CONFIG_WIFI_NETWORK");
 const PASSWORD: &str = env!("CONFIG_WIFI_PASSWORD");
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, defmt::Format)]
 pub enum NetworkState {
     Connecting,
     Up(String<18>),

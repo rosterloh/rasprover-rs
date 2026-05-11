@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-RaspRover-RS is embedded firmware for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover) robot platform, targeting an Espressif ESP32 DevKit-C (Xtensa architecture). It uses [esp-rtos](https://github.com/ariel-os/esp-hal) with [Embassy](https://embassy.dev/book/) for async/await support. All esp-hal family crates are pinned to the ariel-os fork at `rev = 531c629`.
+RaspRover-RS is embedded firmware for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover) robot platform, targeting an Espressif ESP32 DevKit-C (Xtensa architecture). It uses [esp-rtos](https://github.com/esp-rs/esp-hal) with [Embassy](https://embassy.dev/book/) for async/await support. All esp-hal family crates are consumed directly from crates.io — see `Cargo.toml` for pinned versions.
 
 ## Build Commands
 
@@ -65,7 +65,7 @@ async fn main(spawner: Spawner) {
 - `esp-radio` — WiFi via `esp_radio::wifi`
 - `embassy-net` — TCP/IP networking
 - `embassy-sync` — synchronisation primitives (`Watch`, `Mutex`, etc.)
-- All esp-hal family crates are patched to `git = "https://github.com/ariel-os/esp-hal", rev = "531c629..."`
+- All esp-hal family crates are consumed from crates.io at the versions pinned in `Cargo.toml`
 
 **Cargo configuration** (`.cargo/config.toml`) is self-contained — no external includes. Sets the build target, linker arguments, `build-std`, and WiFi credential defaults.
 
@@ -99,7 +99,7 @@ pub struct Peripherals {
 
 **All peripherals have `'static` lifetime** — `GPIO21<'static>`, `LEDC<'static>`, etc. This propagates through esp-hal types (`Output<'static>`, `Channel<'static, LowSpeed>`, etc.).
 
-**PWM (LEDC)**: Use `esp_hal::ledc` directly with the `unstable` feature. The `[patch]` in `Cargo.toml` redirects to the ariel-os fork. LEDC source is in `~/.cargo/git/checkouts/esp-hal-*/531c629/esp-hal/src/ledc/`.
+**PWM (LEDC)**: Use `esp_hal::ledc` directly with the `unstable` feature. LEDC source is in the `esp-hal` crate under `src/ledc/` (browse via `cargo doc --open` or in `~/.cargo/registry/src/`).
 
 **Self-referential HAL structs**: `Channel<'a, LowSpeed>` holds a `&'a dyn TimerIFace` so the timer must outlive the channel. Use `Box::leak(Box::new(timer))` to get a `&'static Timer` — this is safe given the always-available heap.
 

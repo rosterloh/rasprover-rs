@@ -12,9 +12,14 @@ use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::Spawner;
 use embassy_time::{Instant, Timer};
 use esp_hal::{clock::CpuClock, rng::Rng, timer::timg::TimerGroup};
+use esp_storage::FlashStorage;
 use icm20948_async::{AccRange, GyrRange, I2cAddress, IcmBuilder};
 use network::NetworkState;
 use panic_rtt_target as _;
+use rasprover_rs::ota::{
+    Error as OtaError, run_with_ota, set_next_ota_slot, validate_current_ota_slot,
+};
+use rasprover_rs::utils::{log_banner, or_str};
 use rasprover_rs::{board, display, imu, motors, network};
 
 extern crate alloc;
@@ -32,6 +37,26 @@ async fn main(spawner: Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let p = esp_hal::init(config);
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 98768);
+
+    log_banner("Storage Init");
+    let mut ota_flash = FlashStorage::new(p.FLASH);
+
+    log_banner("OTA Init");
+    {
+        let mut pt_mem = [0u8; esp_bootloader_esp_idf::partitions::PARTITION_TABLE_MAX_LEN];
+        let _ota_result =
+            run_with_ota(&mut ota_flash, &mut pt_mem, |ota| -> Result<(), OtaError> {
+                let current = ota.selected_partition()?;
+                let (_region, next) = ota.next_partition()?;
+                info!("current OTA image state {:?}", ota.current_ota_state()?);
+                info!("current OTA {:?} → next {:?}", current, next);
+                validate_current_ota_slot(ota)?;
+                Ok(())
+            })
+            .map_err(|e| {
+                error!("OTA init/validation failed: {:?}", e);
+            });
+    }
 
     let timg0 = TimerGroup::new(p.TIMG0);
     esp_rtos::start(timg0.timer0);
