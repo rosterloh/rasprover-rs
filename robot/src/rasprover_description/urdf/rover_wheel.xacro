@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<robot name="wheel" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="wheel" params="wheel_prefix *joint_pose">
+
+    <link name="${wheel_prefix}_wheel_link">
+      <inertial>
+        <origin xyz="0 0 0.0" rpy="0 0 0" />
+        <mass value="0.1625625" />
+        <inertia ixx="0.0000867" ixy="0" ixz="0" iyy="0.00013005" iyz="0" izz="0.0000867" />
+      </inertial> 
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find rasprover_description)/meshes/wheel_link.stl" scale="1 1 1"/>
+        </geometry>  
+        <material name="silver"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+        <geometry>
+          <cylinder length="0.0425" radius="0.04" /> 
+        </geometry>  
+      </collision>
+    </link>
+
+    <joint name="${wheel_prefix}_wheel_link_joint" type="continuous">
+      <xacro:insert_block name="joint_pose"/>
+      <parent link="base_link" />
+      <child link="${wheel_prefix}_wheel_link" />
+      <axis xyz="0 1 0" />
+    </joint>
+
+  </xacro:macro>
+
+</robot>

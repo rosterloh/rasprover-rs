@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<robot name="lidar" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="lidar" params="*joint_pose">
+
+    <link name="base_lidar_link">
+      <inertial>
+        <origin xyz="0 0 0.0172" rpy="0 0 0" />
+        <mass value="0.0328130" />
+        <inertia ixx="7.08761E-06" ixy="0" ixz="0" iyy="7.08761E-06" iyz="0" izz="7.08761E-06" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find rasprover_description)/meshes/base_lidar_link.stl" />
+        </geometry>
+        <material name="silver"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="file://$(find rasprover_description)/meshes/base_lidar_link.stl" />
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="base_lidar_link_joint" type="fixed">
+      <xacro:insert_block name="joint_pose"/>
+      <parent link="base_link" />
+      <child link="base_lidar_link" />
+      <axis xyz="0 0 0" />
+    </joint>
+
+  </xacro:macro>
+ 
+</robot>

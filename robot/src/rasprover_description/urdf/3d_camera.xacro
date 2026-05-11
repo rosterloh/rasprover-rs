@@ -1,0 +1,83 @@
+<?xml version="1.0" ?>
+<robot name="3d_camera" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="oak" params="use_gazebo *joint_pose">
+
+    <xacro:if value="${use_gazebo}">
+      <link name="oak_base">
+        <inertial>
+          <origin xyz="0.0085 0 0" rpy="0 0 0" />
+          <mass value="0.043316" />
+          <inertia ixx="3.27216283333333E-05" ixy="0" ixz="0" iyy="3.87317233333333E-06" iyz="0" izz="3.09348433333333E-05"  />
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <mesh filename="file://$(find rasprover_description)/meshes/3d_camera_link.stl" />
+          </geometry>
+          <material name="silver"/>
+        </visual>
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <mesh filename="file://$(find rasprover_description)/meshes/3d_camera_link.stl" />
+          </geometry>
+        </collision>
+      </link>
+
+      <joint name="oak_base_joint" type="fixed">
+        <xacro:insert_block name="joint_pose"/>
+        <parent link="base_link" />
+        <child link="oak_base" />
+        <axis xyz="0 0 0" />
+      </joint>
+
+      <link name="3d_camera_link"></link>
+        
+      <joint name="3d_camera_link_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
+        <parent link="oak_base" />
+        <child link="3d_camera_link" />
+        <axis xyz="0 0 0" />
+      </joint>
+    </xacro:if>
+
+    <xacro:unless value="${use_gazebo}">
+      <xacro:include filename="$(find depthai_descriptions)/urdf/include/depthai_macro.urdf.xacro" />
+
+      <xacro:depthai_camera camera_name="oak" parent="3d_camera_link"
+        camera_model="OAK-D-LITE" base_frame="oak-d_frame"
+        cam_pos_x="0.017" cam_pos_y="0.0" cam_pos_z="0.005"
+        cam_roll="0.0" cam_pitch="0.0" cam_yaw="0.0"
+        rs_compat="false" />
+        
+      <link name="3d_camera_link">
+        <inertial>
+          <origin xyz="0.0085 0 0" rpy="0 0 0" />
+          <mass value="0.043316" />
+          <inertia ixx="3.27216283333333E-05" ixy="0" ixz="0" iyy="3.87317233333333E-06" iyz="0" izz="3.09348433333333E-05"  />
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <mesh filename="file://$(find rasprover_description)/meshes/3d_camera_link.stl" />
+          </geometry>
+          <material name="silver"/>
+        </visual>
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <mesh filename="file://$(find rasprover_description)/meshes/3d_camera_link.stl" />
+          </geometry>
+        </collision>
+      </link>
+
+      <joint name="3d_camera_link_joint" type="fixed">
+        <xacro:insert_block name="joint_pose"/>
+        <parent link="base_link" />
+        <child link="3d_camera_link" />
+        <axis xyz="0 0 0" />
+      </joint>
+    </xacro:unless>
+
+  </xacro:macro>
+</robot>

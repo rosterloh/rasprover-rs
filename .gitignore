@@ -1,6 +1,6 @@
-/target
+/firmware/target
+/firmware/.env
 /build
 .gdb_history
-.env
 .claude/*.local.json
 plan.md

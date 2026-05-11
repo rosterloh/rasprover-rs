@@ -1,0 +1,89 @@
+<?xml version="1.0" ?>
+<robot name="rasprover" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="sim_mode" default="true"/>
+
+  <material name="silver"><color rgba="0.7 0.7 0.7 1.0"/></material>
+  <material name="black"><color rgba="0.0 0.0 0.0 1.0"/></material>
+  <material name="blue"><color rgba="0.0 0.0 0.8 1.0"/></material>
+
+  <xacro:include filename="$(find rasprover_description)/urdf/wheels/rover_wheel.xacro" />
+  <xacro:include filename="$(find rasprover_description)/urdf/sensors/lidar.xacro" />
+  <xacro:property name="lidar_joint_pose">
+    <origin xyz="0.03170 -0.00102 0.097648" rpy="0 0 1.5708"/>
+  </xacro:property>
+  <xacro:lidar> 
+    <xacro:insert_block name="lidar_joint_pose" />
+  </xacro:lidar>
+
+  <xacro:include filename="$(find rasprover_description)/urdf/sensors/pt.xacro"/>
+  <xacro:pt use_gazebo="$(arg use_gazebo)" GZ_VERSION="$(arg GZ_VERSION)" pt_base_link_joint_pose_z="0.097648" initial_positions_file="$(find rasprover_description)/config/initial_positions.yaml"/>
+
+  <xacro:if value="${use_gazebo}">
+    <xacro:include filename="$(find rasprover_description)/urdf/gazebo/rasp_rover.gazebo"/>
+    <xacro:gazebo GZ_VERSION="$(arg GZ_VERSION)"/>
+  </xacro:if>
+
+  <xacro:property name="base_inertial">
+    <inertial>
+      <origin xyz="0.0012 0 0.049" rpy="0 0 0" />
+      <mass value="0.8175429" />
+      <inertia ixx="0.001928799" ixy="0" ixz="0" iyy="0.002969208" iyz="0" izz="0.003597819" />
+    </inertial>
+  </xacro:property>
+
+  <xacro:property name="base_pose">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:property>
+
+  <xacro:property name="base_joint_pose">
+    <origin xyz="0 0 0.033252" rpy="0 0 0"/>
+  </xacro:property>
+        
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <xacro:insert_block name="base_inertial" />
+      <visual>
+        <xacro:insert_block name="base_pose"/>
+        <geometry>
+          <mesh filename="file://$(find rasprover_description)/meshes/rasp_rover_base.stl" scale="1.0 1.0 1.0"/>
+        </geometry>
+        <material name="silver"/>
+      </visual>
+      <collision>
+        <xacro:insert_block name="base_pose"/>
+        <geometry>
+          <mesh filename="file://$(find rasprover_description)/meshes/rasp_rover_base.stl" scale="1.0 1.0 1.0"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="base_joint" type="fixed">
+      <parent link="base_footprint"/>
+      <child link="base_link"/>
+      <xacro:insert_block name="base_joint_pose" />
+    </joint>
+
+    <xacro:property name="up_wheel_joint_pose_x" value="0.049466"/>
+    <xacro:property name="down_wheel_joint_pose_x" value="0.047532"/>
+    <xacro:property name="wheel_joint_pose_y" value="0.06480"/>
+    <xacro:property name="wheel_joint_pose_z" value="0.006748"/>
+
+    <xacro:wheel wheel_prefix="left_up">
+      <origin xyz="${up_wheel_joint_pose_x} ${wheel_joint_pose_y} ${wheel_joint_pose_z}" rpy="0 0 0" />
+    </xacro:wheel>
+
+    <xacro:wheel wheel_prefix="left_down">
+      <origin xyz="-${down_wheel_joint_pose_x} ${wheel_joint_pose_y} ${wheel_joint_pose_z}" rpy="0 0 0" />
+    </xacro:wheel>
+
+    <xacro:wheel wheel_prefix="right_up">
+      <origin xyz="${up_wheel_joint_pose_x} -${wheel_joint_pose_y} ${wheel_joint_pose_z}" rpy="0 0 0" />
+    </xacro:wheel>
+
+    <xacro:wheel wheel_prefix="right_down">
+      <origin xyz="-${down_wheel_joint_pose_x} -${wheel_joint_pose_y} ${wheel_joint_pose_z}" rpy="0 0 0" />
+    </xacro:wheel>  
+        
+</robot>

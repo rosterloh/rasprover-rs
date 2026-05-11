@@ -1,0 +1,390 @@
+<?xml version="1.0" ?>
+<robot name="rasp_rover" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+<xacro:macro name="gazebo" params="GZ_VERSION">
+
+<gazebo reference="left_up_wheel_link">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>1</mu>
+          <mu2>1</mu2>
+          <slip1>0.1</slip1>
+          <slip2>0</slip2>
+          <fdir1>0 0 1</fdir1>
+        </ode>
+        <bullet>
+          <friction>1</friction>
+          <friction2>1</friction2>
+          <rolling_friction>0.1</rolling_friction>
+        </bullet>
+      </friction>
+    </surface>  
+  </collision>
+</gazebo>
+
+<gazebo reference="left_down_wheel_link">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>1</mu>
+          <mu2>1</mu2>
+          <slip1>0.1</slip1>
+          <slip2>0</slip2>
+          <fdir1>0 0 1</fdir1>
+        </ode>
+        <bullet>
+          <friction>1</friction>
+          <friction2>1</friction2>
+          <rolling_friction>0.1</rolling_friction>
+        </bullet>
+      </friction>
+    </surface>  
+  </collision>
+</gazebo>
+
+<gazebo reference="right_up_wheel_link">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>1</mu>
+          <mu2>1</mu2>
+          <slip1>0.1</slip1>
+          <slip2>0</slip2>
+          <fdir1>0 0 1</fdir1>
+        </ode>
+        <bullet>
+          <friction>1</friction>
+          <friction2>1</friction2>
+          <rolling_friction>0.1</rolling_friction>
+        </bullet>
+      </friction>
+    </surface>  
+  </collision>
+</gazebo>
+
+<gazebo reference="right_down_wheel_link">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>1</mu>
+          <mu2>1</mu2>
+          <slip1>0.1</slip1>
+          <slip2>0</slip2>
+          <fdir1>0 0 1</fdir1>
+        </ode>
+        <bullet>
+          <friction>1</friction>
+          <friction2>1</friction2>
+          <rolling_friction>0.1</rolling_friction>
+        </bullet>
+      </friction>
+    </surface>  
+  </collision>
+</gazebo>
+
+<xacro:if value="${GZ_VERSION == 'classic'}">
+  <gazebo reference="base_lidar_link">
+    <sensor name='ldlidar' type='ray'> 
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <pose>0 0 0 0 -0 0</pose>
+      <update_rate>20</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1.000000</resolution>
+            <min_angle>0.000000</min_angle>
+            <max_angle>6.280000</max_angle>
+          </horizontal>
+        </scan> 
+        <range>
+          <min>0.160000</min>
+          <max>12.0</max>
+          <resolution>0.015000</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name='laserscan' filename='libgazebo_ros_ray_sensor.so'>
+        <ros>
+          <remapping>~/out:=scan</remapping>
+        </ros>
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>base_lidar_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>       
+
+  <gazebo reference="pt_camera_link">
+    <sensor name="pt_camera" type="camera">
+      <pose>0 0 0 0 -0 0</pose>
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <update_rate>20</update_rate>
+      <camera name="usb_cam">
+        <horizontal_fov>1.02974</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="pt_camera_driver" filename="libgazebo_ros_camera.so">
+        <ros>
+        </ros>
+      </plugin>
+    </sensor>  
+  </gazebo>     
+
+  <gazebo reference="oak_base">
+    <sensor name="oak" type="depth">
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <update_rate>20</update_rate>
+      <camera name="oak">
+        <horizontal_fov>1.02974</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>RGB8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="oak_camera_driver" filename="libgazebo_ros_camera.so">
+        <ros>
+        </ros>
+        <frame_name>3d_camera_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <ros>
+        <namespace>/</namespace>
+        <remapping>cmd_vel:=cmd_vel</remapping>
+        <remapping>odom:=odom</remapping>
+      </ros>
+              
+      <updateRate>20</updateRate>
+
+      <num_wheel_pairs>2</num_wheel_pairs>
+
+      <left_joint>left_up_wheel_link_joint</left_joint>
+      <right_joint>right_up_wheel_link_joint</right_joint>
+      <left_joint>left_down_wheel_link_joint</left_joint>
+      <right_joint>right_down_wheel_link_joint</right_joint>
+
+      <wheel_separation>0.12960</wheel_separation>
+      <wheel_separation>0.12960</wheel_separation>
+      <wheel_diameter>0.08</wheel_diameter>
+      <wheel_diameter>0.08</wheel_diameter>
+
+      <max_wheel_torque>1000</max_wheel_torque>
+      <max_wheel_acceleration>1.0</max_wheel_acceleration>
+
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <command_topic>cmd_vel</command_topic>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+    </plugin>  
+
+    <plugin name="gazebo_ros_joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+      <ros>
+        <!-- <namespace></namespace> -->
+        <remapping>joint_states:=joint_states</remapping>
+      </ros>
+      <update_rate>50</update_rate>
+      <joint_name>left_up_wheel_link_joint</joint_name>
+      <joint_name>left_down_wheel_link_joint</joint_name>
+      <joint_name>right_up_wheel_link_joint</joint_name>
+      <joint_name>right_down_wheel_link_joint</joint_name>
+      <joint_name>pt_base_link_to_pt_link1</joint_name>
+      <joint_name>pt_link1_to_pt_link2</joint_name>
+    </plugin>
+  </gazebo> 
+</xacro:if>
+
+<xacro:if value="${GZ_VERSION == 'harmonic'}">
+<gazebo reference="base_lidar_link">
+  <sensor name='lidar' type='gpu_lidar'>
+    <gz_frame_id>base_lidar_link</gz_frame_id>
+    <topic>/scan</topic> 
+    <update_rate>20</update_rate>
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>360</samples>
+          <resolution>1</resolution>
+          <min_angle>0</min_angle>
+          <max_angle>6.28</max_angle>
+        </horizontal>
+      </scan>
+      <range>
+        <min>0.2</min>
+        <max>12.0</max>
+        <resolution>0.01</resolution>
+      </range>
+      <noise>
+        <type>gaussian</type>
+        <mean>0.0</mean>
+        <stddev>0.01</stddev>
+      </noise>
+    </ray>    
+    <alwaysOn>1</alwaysOn>
+    <visualize>true</visualize>
+  </sensor>
+</gazebo>       
+
+<gazebo reference="pt_camera_link">
+  <sensor name="pt_camera" type="camera">
+    <gz_frame_id>pt_camera_link</gz_frame_id>
+    <pose>0 0 0 0 -0 0</pose>
+    <topic>image_raw</topic>
+    <always_on>true</always_on>
+    <visualize>true</visualize>
+    <update_rate>20</update_rate>
+    <camera name="usb_cam">
+      <horizontal_fov>1.02974</horizontal_fov>
+      <image>
+        <width>640</width>
+        <height>480</height>
+        <format>R8G8B8</format>
+      </image>
+      <clip>
+        <near>0.02</near>
+        <far>300</far>
+      </clip>
+      <noise>
+        <type>gaussian</type>
+        <mean>0.0</mean>
+        <stddev>0.007</stddev>
+      </noise>
+    </camera>
+  </sensor>  
+</gazebo>
+
+<gazebo reference="oak_base">
+  <sensor name="oak_depth" type="depth_camera">
+    <update_rate>10</update_rate>
+    <topic>/oak/depth_image</topic>
+    <gz_frame_id>3d_camera_link</gz_frame_id>
+    <camera>
+      <horizontal_fov>1.02974</horizontal_fov>
+      <image>
+        <width>640</width>
+        <height>480</height>
+        <format>R_FLOAT32</format>
+      </image>
+      <clip>
+        <near>0.2</near>
+        <far>15.0</far>
+      </clip>
+    </camera>
+  </sensor>
+  <sensor name="oak_rgbd" type="camera">
+    <gz_frame_id>3d_camera_link</gz_frame_id>
+    <pose>0 0 0 0 -0 0</pose>
+    <topic>/oak/image</topic>
+    <always_on>true</always_on>
+    <visualize>true</visualize>
+    <update_rate>20</update_rate>
+    <camera name="usb_cam">
+      <horizontal_fov>1.02974</horizontal_fov>
+      <image>
+        <width>640</width>
+        <height>480</height>
+        <format>R8G8B8</format>
+      </image>
+      <clip>
+        <near>0.02</near>
+        <far>300</far>
+      </clip>
+      <noise>
+        <type>gaussian</type>
+        <mean>0.0</mean>
+        <stddev>0.007</stddev>
+      </noise>
+    </camera>
+  </sensor>    
+</gazebo> 
+
+<gazebo>
+  <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+    <left_joint>left_up_wheel_link_joint</left_joint>
+    <left_joint>left_down_wheel_link_joint</left_joint>
+    <right_joint>right_up_wheel_link_joint</right_joint>
+    <right_joint>right_down_wheel_link_joint</right_joint>
+    <wheel_separation>0.12960</wheel_separation>
+    <wheel_radius>0.04</wheel_radius>
+    <max_linear_acceleration>3</max_linear_acceleration>
+    <min_linear_acceleration>-3</min_linear_acceleration>
+    <max_angular_acceleration>6</max_angular_acceleration>
+    <min_angular_acceleration>-6</min_angular_acceleration>
+    <max_linear_velocity>1.5</max_linear_velocity>
+    <min_linear_velocity>-1.5</min_linear_velocity>
+    <max_angular_velocity>3.14</max_angular_velocity>
+    <min_angular_velocity>-3.14</min_angular_velocity>
+    <odom_publish_frequency>20</odom_publish_frequency>
+    <topic>/cmd_vel</topic>
+    <odom_topic>/wheel_odom</odom_topic>
+    <tf_topic>/wheel_tf</tf_topic>    
+    <frame_id>odom</frame_id>
+    <child_frame_id>base_footprint</child_frame_id>        
+  </plugin>
+
+  <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+    <topic>joint_states</topic>
+    <joint_name>left_up_wheel_link_joint</joint_name>
+    <joint_name>left_down_wheel_link_joint</joint_name>
+    <joint_name>right_up_wheel_link_joint</joint_name>
+    <joint_name>right_down_wheel_link_joint</joint_name>
+    <joint_name>pt_base_link_to_pt_link1</joint_name>
+    <joint_name>pt_link1_to_pt_link2</joint_name>
+  </plugin>  
+
+  <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+    <render_engine>ogre2</render_engine>
+  </plugin>
+
+  <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+    <odom_publish_frequency>20</odom_publish_frequency>
+    <odom_frame>odom</odom_frame>
+    <robot_base_frame>base_footprint</robot_base_frame>
+    <odom_topic>/odom</odom_topic>
+    <tf_topic>/tf</tf_topic>
+  </plugin>
+</gazebo>
+</xacro:if>  
+
+</xacro:macro>
+</robot>

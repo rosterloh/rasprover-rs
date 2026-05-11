@@ -1,0 +1,224 @@
+<?xml version="1.0" ?>
+<robot name="pt" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<xacro:macro name="pt" params="use_gazebo GZ_VERSION pt_base_link_joint_pose_z initial_positions_file">
+
+<xacro:property name="initial_positions" value="${load_yaml(initial_positions_file)['initial_positions']}"/>
+
+<link name="pt_base_link">
+  <inertial>
+    <origin xyz="-0.0011 0 0.0185" rpy="0 0 0" />
+    <mass value="0.0741863" />
+    <inertia ixx="1.93688E-05" ixy="0" ixz="0" iyy="3.37857E-05" iyz="0" izz="3.62276E-05" />
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 3.1415926" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_base_link.stl" />
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 3.1415926" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_base_link.stl" />
+    </geometry>
+  </collision>
+</link>
+
+<link name="pt_link1">
+  <inertial>
+    <origin xyz="-0.00175 0 0.0265" rpy="0 0 0" />
+    <mass value="0.0055807" />
+    <inertia ixx="2.08059E-06" ixy="0" ixz="0" iyy="2.06346E-06" iyz="0" izz="1.47106E-06" />
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_link1.stl" />
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_link1.stl" />
+    </geometry>
+  </collision>
+</link>
+
+<link name="pt_link2">
+  <inertial>
+    <origin xyz="0.026 0.0140 0.020" rpy="0 0 0" />
+    <mass value="0.0761839" />
+    <inertia ixx="2.75157E-05" ixy="0" ixz="0" iyy="4.88156E-05" iyz="0" izz="5.98756E-05" />
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_link2.stl" />
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_link2.stl" />
+    </geometry>
+  </collision>
+</link>
+
+<link name="pt_camera_link">
+  <inertial>
+    <origin xyz="0.009 0 0" rpy="0 0 0" />
+    <mass value="0.0048957" />
+    <inertia ixx="4.89978E-07" ixy="0" ixz="0" iyy="3.75712E-07" iyz="0" izz="3.95703E-07" />
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_camera_link.stl" />
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <geometry>
+      <mesh filename="file://$(find rasprover_description)/meshes/pt_camera_link.stl" />
+    </geometry>
+  </collision>
+</link>
+
+<joint name="pt_base_link_joint" type="fixed">
+  <origin xyz="-0.02571 0 ${pt_base_link_joint_pose_z}" rpy="0 0 0" />
+  <parent link="base_link" />
+  <child link="pt_base_link" />
+  <axis xyz="0 0 0" />
+</joint>
+
+<joint name="pt_base_link_to_pt_link1" type="revolute">
+  <origin xyz="0.0113 0 0.0383" rpy="0 0 0" />
+  <parent link="pt_base_link" />
+  <child link="pt_link1" />
+  <axis xyz="0 0 1" />
+  <limit lower="-3.14" upper="3.14" effort="1.0" velocity="1.0" />
+</joint>
+
+<joint name="pt_link1_to_pt_link2" type="revolute">
+  <origin xyz="0 0.02 0.043003" rpy="1.5708 0 0" />
+  <parent link="pt_link1" />
+  <child link="pt_link2" />
+  <axis xyz="0 0 1" />
+  <limit lower="-0.5233333" upper="1.5707963" effort="1.0" velocity="1.0" />
+</joint>
+  
+<joint name="pt_camera_link_joint" type="fixed">
+  <origin xyz="0.0484 -0.000569 0.02" rpy="-1.5708 0 0" />
+  <parent link="pt_link2" />
+  <child link="pt_camera_link" />
+  <axis xyz="0 0 0" />
+</joint>
+
+<ros2_control name="PtHardware" type="system">
+  <hardware>
+    <xacro:unless value="${use_gazebo}">
+    <plugin>mock_components/GenericSystem</plugin>
+    </xacro:unless>
+    <xacro:if value="${use_gazebo}">
+      <xacro:if value="${GZ_VERSION == 'classic'}">
+        <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+      </xacro:if>    
+      <xacro:if value="${GZ_VERSION == 'harmonic'}">
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </xacro:if>         
+    </xacro:if>    
+  </hardware>
+
+  <joint name="pt_base_link_to_pt_link1">
+    <command_interface name="position"/>
+    <state_interface name="position">
+    <state_interface name="velocity"/>
+    <state_interface name="effort"/>
+      <param name="initial_value">${initial_positions['pt_base_link_to_pt_link1']}</param>
+    </state_interface>
+  </joint>
+  <joint name="pt_link1_to_pt_link2">
+    <command_interface name="position"/>
+    <state_interface name="position">
+    <state_interface name="velocity"/>
+    <state_interface name="effort"/>
+      <param name="initial_value">${initial_positions['pt_link1_to_pt_link2']}</param>
+    </state_interface>
+  </joint>
+
+  <joint name="left_up_wheel_link_joint">
+    <command_interface name="position"/>
+    <state_interface name="position">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+    <state_interface name="velocity">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+  </joint>
+  <joint name="left_down_wheel_link_joint">
+    <command_interface name="position"/>
+    <state_interface name="position">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+    <state_interface name="velocity">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+  </joint>
+  <joint name="right_up_wheel_link_joint">
+    <command_interface name="position"/>
+    <state_interface name="position">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+    <state_interface name="velocity">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+  </joint>
+  <joint name="right_down_wheel_link_joint">
+    <command_interface name="position"/>
+    <state_interface name="position">
+      <param name="initial_value">0.0</param>
+    </state_interface>
+  </joint>  
+  
+</ros2_control>
+
+<transmission name="pt_base_link_to_pt_link1_transmission">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="pt_base_link_to_pt_link1">
+    <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="pt_base_link_to_pt_link1_actuator">
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<transmission name="pt_link1_to_pt_link2_transmission">
+  <type>transmission_interface/SimpleTransmission</type>
+  <joint name="pt_link1_to_pt_link2">
+    <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+  </joint>
+  <actuator name="pt_link1_to_pt_link2_actuator">
+    <mechanicalReduction>1</mechanicalReduction>
+  </actuator>
+</transmission>
+
+<gazebo>
+  <xacro:if value="${GZ_VERSION == 'classic'}">
+    <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+      <parameters>$(find rasprover_description)/config/ros2_controllers.yaml</parameters>
+    </plugin>
+  </xacro:if>    
+  <xacro:if value="${GZ_VERSION == 'harmonic'}">
+    <plugin name="gz_ros2_control::GazeboSimROS2ControlPlugin" filename="libgz_ros2_control-system.so">
+      <parameters>$(find rasprover_description)/config/ros2_controllers.yaml</parameters>
+    </plugin>
+  </xacro:if>  
+</gazebo>
+
+</xacro:macro>
+
+</robot>

@@ -2,13 +2,20 @@
 
 ## Project Overview
 
-RaspRover-RS is embedded firmware for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover) robot platform, targeting an Espressif ESP32 DevKit-C (Xtensa architecture). It uses [esp-rtos](https://github.com/esp-rs/esp-hal) with [Embassy](https://embassy.dev/book/) for async/await support. All esp-hal family crates are consumed directly from crates.io — see `Cargo.toml` for pinned versions.
+RaspRover-RS is a monorepo for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover) robot platform:
+
+- `firmware/` — embedded firmware for the Espressif ESP32 DevKit-C (Xtensa) on the ROS Driver Board, using [esp-rtos](https://github.com/esp-rs/esp-hal) with [Embassy](https://embassy.dev/book/). All esp-hal family crates are consumed directly from crates.io — see `firmware/Cargo.toml` for pinned versions.
+- `data/` — mechanical CAD and reference documents for the RaspRover platform.
+
+A ROS 2 workspace for the Raspberry Pi host will live alongside `firmware/` in a future subdirectory.
 
 ## Build Commands
 
-Standard Cargo is used directly — no meta-build system required.
+All firmware build commands run from the `firmware/` directory. Standard Cargo is used directly — no meta-build system required.
 
 ```bash
+cd firmware
+
 # Build only
 cargo build --release
 
@@ -16,7 +23,7 @@ cargo build --release
 cargo run --release
 ```
 
-WiFi credentials are configured via environment variables (with fallback defaults in `.cargo/config.toml`):
+WiFi credentials are configured via environment variables (with fallback defaults in `firmware/.cargo/config.toml`):
 ```bash
 export CONFIG_WIFI_NETWORK="your-ssid"
 export CONFIG_WIFI_PASSWORD="your-password"
@@ -67,11 +74,11 @@ async fn main(spawner: Spawner) {
 - `embassy-sync` — synchronisation primitives (`Watch`, `Mutex`, etc.)
 - All esp-hal family crates are consumed from crates.io at the versions pinned in `Cargo.toml`
 
-**Cargo configuration** (`.cargo/config.toml`) is self-contained — no external includes. Sets the build target, linker arguments, `build-std`, and WiFi credential defaults.
+**Cargo configuration** (`firmware/.cargo/config.toml`) is self-contained — no external includes. Sets the build target, linker arguments, `build-std`, and WiFi credential defaults.
 
 ## Logging
 
-Uses `defmt` structured logging via RTT. Log level is controlled by the `DEFMT_LOG` environment variable (default: `info` in `.cargo/config.toml`). Import macros directly from `defmt`:
+Uses `defmt` structured logging via RTT. Log level is controlled by the `DEFMT_LOG` environment variable (default: `info` in `firmware/.cargo/config.toml`). Import macros directly from `defmt`:
 ```rust
 use defmt::{debug, error, info, warn};
 use panic_rtt_target as _;
@@ -87,7 +94,7 @@ The panic handler is provided by `panic-rtt-target`. The `rtt-target` crate (wit
 
 ## Peripheral Patterns
 
-**Peripherals struct** (`src/pins.rs`) is a plain Rust struct. Use concrete peripheral types from `esp_hal::peripherals` for typed pins and `AnyPin<'static>` (via `.into()`) for interchangeable pins:
+**Peripherals struct** (`firmware/src/pins.rs`) is a plain Rust struct. Use concrete peripheral types from `esp_hal::peripherals` for typed pins and `AnyPin<'static>` (via `.into()`) for interchangeable pins:
 ```rust
 pub struct Peripherals {
     pub i2c_sda: GPIO32<'static>,
