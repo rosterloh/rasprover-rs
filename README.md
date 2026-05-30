@@ -6,7 +6,7 @@ Monorepo for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover)
 
 ```
 firmware/   ESP32 DevKit-C embedded firmware (Rust, no_std + Embassy)
-robot/      ROS 2 workspace for the Raspberry Pi host (Kilted Kaiju)
+robot/      ROS 2 workspace for the Raspberry Pi host (Lyrical Luth)
 data/       Mechanical CAD and reference documents
 ```
 
@@ -64,7 +64,7 @@ Logs stream over RTT. Level is controlled by `DEFMT_LOG` (default: `info`).
 
 ## Robot (ROS 2)
 
-The ROS 2 workspace uses [RoboStack Kilted](https://robostack.github.io) via pixi.
+The ROS 2 workspace uses [RoboStack Lyrical](https://robostack.github.io) via pixi.
 
 ```bash
 pixi install -e ros
