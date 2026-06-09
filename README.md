@@ -61,6 +61,31 @@ Logs stream over RTT. Level is controlled by `DEFMT_LOG` (default: `info`).
 | `imu` | MPU-6050 with Kalman / Mahony filter |
 | `motors` | PWM motor control via LEDC |
 | `network` | WiFi station + DHCP, OTA updates |
+| `ros2` | ROS 2 telemetry over Zenoh (experimental) |
+
+### ROS 2 telemetry bridge (experimental)
+
+The `ros2` module is a spike that publishes the fused IMU attitude as a
+`sensor_msgs/msg/Imu` on `/imu`, straight into the ROS 2 graph over Zenoh — no
+micro-ROS agent — using the `no_std` [zenoh-ros2-nostd](https://github.com/Baker-Tanaka/zenoh_ros2_nostd)
+library on top of the existing WiFi/`embassy-net` stack.
+
+```bash
+export CONFIG_ZENOH_ROUTER="192.168.1.42:7447"   # the Pi's ip:port
+```
+
+On the Pi, run a Zenoh router and echo the topic (the firmware joins the same graph):
+
+```bash
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+ros2 run rmw_zenoh_cpp rmw_zenohd                 # in one shell
+ros2 topic echo /imu sensor_msgs/msg/Imu          # in another
+```
+
+> The `/imu` key expression embeds the `sensor_msgs/msg/Imu` RIHS01 type hash
+> (pinned in `firmware/src/ros2.rs`); it must match the host's ROS distro or
+> `echo` sees nothing. The value is content-addressed, so it is stable across
+> distros with an unchanged message definition.
 
 ## Robot (ROS 2)
 

@@ -1398,6 +1398,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bfb9eb618601c89945a70e254898da93b13be0388091d42117462b265bb3fad"
 dependencies = [
  "hash32 0.3.1",
+ "serde",
  "stable_deref_trait",
 ]
 
@@ -1837,7 +1838,9 @@ dependencies = [
  "embassy-sync 0.8.0",
  "embassy-time",
  "embedded-graphics",
+ "embedded-io 0.6.1",
  "embedded-io 0.7.1",
+ "embedded-io-async 0.6.1",
  "embedded-io-async 0.7.0",
  "embedded-storage",
  "embedded-storage-async",
@@ -1854,9 +1857,11 @@ dependencies = [
  "once_cell",
  "panic-rtt-target",
  "rtt-target",
+ "serde",
  "smoltcp",
  "ssd1306",
  "static_cell",
+ "zenoh-ros2-nostd",
 ]
 
 [[package]]
@@ -2465,4 +2470,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "zenoh-ros2-nostd"
+version = "1.0.0"
+source = "git+https://github.com/Baker-Tanaka/zenoh_ros2_nostd?rev=f88b60b9c48da1ebab7e9d9bf4e8b4e95e7baab6#f88b60b9c48da1ebab7e9d9bf4e8b4e95e7baab6"
+dependencies = [
+ "defmt 1.0.1",
+ "embassy-sync 0.8.0",
+ "embassy-time",
+ "embedded-io-async 0.6.1",
+ "heapless 0.8.0",
+ "serde",
 ]
