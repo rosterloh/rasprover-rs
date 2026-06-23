@@ -38,6 +38,9 @@ embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime
 embedded-graphics = "0.8"
 embedded-io = { version = "0.7.1", features = ["defmt"] }
 embedded-io-async = { version = "0.7.0", features = ["defmt"] }
+# 0.6 traits required by the zenoh-ros2-nostd transport adapter shim (see src/ros2.rs)
+embedded-io-06 = { package = "embedded-io", version = "0.6" }
+embedded-io-async-06 = { package = "embedded-io-async", version = "0.6" }
 embedded-storage = "0.3.1"
 embedded-storage-async = "0.4.1"
 esp-alloc = { version = "0.10.0", features = ["defmt"] }
@@ -52,6 +55,7 @@ libm = { version = "0.2", default-features = false }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 panic-rtt-target = { version = "0.2.0", features = ["defmt"] }
 rtt-target = { version = "0.6.2", features = ["defmt"] }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
 # for more networking protocol support see https://crates.io/crates/edge-net
 smoltcp = { version = "0.13.1", default-features = false, features = [
   "defmt",
@@ -68,6 +72,7 @@ smoltcp = { version = "0.13.1", default-features = false, features = [
 ] }
 ssd1306 = { version = "0.10", features = ["async"] }
 static_cell = "2.1.0"
+zenoh-ros2-nostd = { git = "https://github.com/Baker-Tanaka/zenoh_ros2_nostd", rev = "f88b60b9c48da1ebab7e9d9bf4e8b4e95e7baab6", default-features = false, features = ["defmt"] }
 
 [dev-dependencies]
 embedded-test = { version = "0.7.0", features = [

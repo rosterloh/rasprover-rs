@@ -21,7 +21,7 @@ use network::NetworkState;
 use panic_rtt_target as _;
 use rasprover_rs::ota::{Error as OtaError, run_with_ota, validate_current_ota_slot};
 use rasprover_rs::utils::log_banner;
-use rasprover_rs::{board, display, imu, motors, network};
+use rasprover_rs::{board, display, imu, motors, network, ros2};
 
 extern crate alloc;
 
@@ -101,7 +101,8 @@ async fn main(spawner: Spawner) {
     spawner.spawn(display::display_task().unwrap());
 
     let rng = Rng::new();
-    network::init(p.WIFI, rng, spawner);
+    let stack = network::init(p.WIFI, rng, spawner);
+    ros2::init(stack, spawner);
 
     let imu_i2c = I2cDevice::new(board::get_i2c_bus());
     let mut imu = IcmBuilder::new_i2c(imu_i2c, embassy_time::Delay)
@@ -150,6 +151,12 @@ async fn main(spawner: Spawner) {
                             processed.pitch,
                             processed.yaw,
                         );
+                        ros2::publish(
+                            imu_processor.quaternion(),
+                            processed.gyr,
+                            processed.acc,
+                        )
+                        .await;
                     }
                     Err(_) => error!("IMU read error"),
                 }

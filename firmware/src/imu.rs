@@ -386,4 +386,9 @@ impl ImuProcessor {
         let (roll, pitch, yaw) = self.mahony.update(facc, fgyr, fmag, dt);
         ImuData { acc: facc, gyr: fgyr, mag: fmag, tmp, roll, pitch, yaw }
     }
+
+    /// Returns the current fused attitude quaternion `[w, x, y, z]`.
+    pub fn quaternion(&self) -> [f32; 4] {
+        self.mahony.quaternion()
+    }
 }

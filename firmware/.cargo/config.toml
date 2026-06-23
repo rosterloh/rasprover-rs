@@ -14,3 +14,4 @@ build-std = ["core", "alloc"]
 DEFMT_LOG="info"
 CONFIG_WIFI_NETWORK  = { value = "your-ssid",     force = false }
 CONFIG_WIFI_PASSWORD = { value = "your-password", force = false }
+CONFIG_ZENOH_ROUTER  = { value = "192.168.1.1:7447", force = false }
