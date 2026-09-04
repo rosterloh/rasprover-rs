@@ -2,13 +2,14 @@
 <robot name="rasprover" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:arg name="sim_mode" default="true"/>
+  <xacro:arg name="GZ_VERSION" default="harmonic"/>
 
   <material name="silver"><color rgba="0.7 0.7 0.7 1.0"/></material>
   <material name="black"><color rgba="0.0 0.0 0.0 1.0"/></material>
   <material name="blue"><color rgba="0.0 0.0 0.8 1.0"/></material>
 
-  <xacro:include filename="$(find rasprover_description)/urdf/wheels/rover_wheel.xacro" />
-  <xacro:include filename="$(find rasprover_description)/urdf/sensors/lidar.xacro" />
+  <xacro:include filename="$(find rasprover_description)/urdf/rover_wheel.xacro" />
+  <xacro:include filename="$(find rasprover_description)/urdf/lidar.xacro" />
   <xacro:property name="lidar_joint_pose">
     <origin xyz="0.03170 -0.00102 0.097648" rpy="0 0 1.5708"/>
   </xacro:property>
@@ -16,11 +17,11 @@
     <xacro:insert_block name="lidar_joint_pose" />
   </xacro:lidar>
 
-  <xacro:include filename="$(find rasprover_description)/urdf/sensors/pt.xacro"/>
-  <xacro:pt use_gazebo="$(arg use_gazebo)" GZ_VERSION="$(arg GZ_VERSION)" pt_base_link_joint_pose_z="0.097648" initial_positions_file="$(find rasprover_description)/config/initial_positions.yaml"/>
+  <xacro:include filename="$(find rasprover_description)/urdf/pt.xacro"/>
+  <xacro:pt use_gazebo="$(arg sim_mode)" GZ_VERSION="$(arg GZ_VERSION)" pt_base_link_joint_pose_z="0.097648" initial_positions_file="$(find rasprover_description)/config/initial_positions.yaml"/>
 
-  <xacro:if value="${use_gazebo}">
-    <xacro:include filename="$(find rasprover_description)/urdf/gazebo/rasp_rover.gazebo"/>
+  <xacro:if value="$(arg sim_mode)">
+    <xacro:include filename="$(find rasprover_description)/urdf/rasprover.gazebo"/>
     <xacro:gazebo GZ_VERSION="$(arg GZ_VERSION)"/>
   </xacro:if>
 

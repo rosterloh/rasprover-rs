@@ -36,28 +36,28 @@ static TICKS_RIGHT: AtomicI32 = AtomicI32::new(0);
 fn encoder_isr() {
     critical_section::with(|cs| {
         let mut left = UNIT_LEFT.borrow_ref_mut(cs);
-        if let Some(u) = left.as_mut() {
-            if u.interrupt_is_set() {
-                let ev = u.events();
-                if ev.high_limit {
-                    TICKS_LEFT.fetch_add(LIMIT as i32, Ordering::Relaxed);
-                } else if ev.low_limit {
-                    TICKS_LEFT.fetch_add(-(LIMIT as i32), Ordering::Relaxed);
-                }
-                u.reset_interrupt();
+        if let Some(u) = left.as_mut()
+            && u.interrupt_is_set()
+        {
+            let ev = u.events();
+            if ev.high_limit {
+                TICKS_LEFT.fetch_add(LIMIT as i32, Ordering::Relaxed);
+            } else if ev.low_limit {
+                TICKS_LEFT.fetch_add(-(LIMIT as i32), Ordering::Relaxed);
             }
+            u.reset_interrupt();
         }
         let mut right = UNIT_RIGHT.borrow_ref_mut(cs);
-        if let Some(u) = right.as_mut() {
-            if u.interrupt_is_set() {
-                let ev = u.events();
-                if ev.high_limit {
-                    TICKS_RIGHT.fetch_add(LIMIT as i32, Ordering::Relaxed);
-                } else if ev.low_limit {
-                    TICKS_RIGHT.fetch_add(-(LIMIT as i32), Ordering::Relaxed);
-                }
-                u.reset_interrupt();
+        if let Some(u) = right.as_mut()
+            && u.interrupt_is_set()
+        {
+            let ev = u.events();
+            if ev.high_limit {
+                TICKS_RIGHT.fetch_add(LIMIT as i32, Ordering::Relaxed);
+            } else if ev.low_limit {
+                TICKS_RIGHT.fetch_add(-(LIMIT as i32), Ordering::Relaxed);
             }
+            u.reset_interrupt();
         }
     });
 }
@@ -76,6 +76,7 @@ pub struct Motors {
 }
 
 impl Motors {
+    #[allow(clippy::too_many_arguments)] // one argument per motor-driver pin
     pub fn new(
         ledc_p: LEDC<'static>,
         ain1_pin: impl OutputPin + 'static,
@@ -127,9 +128,8 @@ impl Motors {
         let bin1 = Output::new(bin1_pin, Level::Low, cfg);
         let bin2 = Output::new(bin2_pin, Level::Low, cfg);
 
-        // Forget ledc to prevent any Drop side-effects on the peripheral token;
-        // channels and timer continue to operate via their 'static register references.
-        core::mem::forget(ledc);
+        // `ledc` is dropped here; channels and timer keep operating via their
+        // 'static register references.
 
         // --- PCNT encoder setup ---
         let mut pcnt = Pcnt::new(pcnt_p);
@@ -145,7 +145,7 @@ impl Motors {
         let u0 = pcnt.unit0;
         u0.set_low_limit(Some(-LIMIT)).unwrap();
         u0.set_high_limit(Some(LIMIT)).unwrap();
-        u0.set_filter(Some((10u16 * 80).min(1023))).unwrap(); // 10 µs glitch filter at 80 MHz APB
+        u0.set_filter(Some(10 * 80)).unwrap(); // 10 µs glitch filter at 80 MHz APB
         u0.clear();
         u0.channel0.set_edge_signal(sig_left);
         u0.channel0.set_ctrl_mode(CtrlMode::Keep, CtrlMode::Keep);

@@ -39,6 +39,10 @@ pkg-config = ">=0.29.2,<0.30"
 libcurl = ">=8.18.0,<9"
 filelock = ">=3.20.3,<4"
 setuptools = ">=80.9.0,<81"
+# launch_testing 3.9.7 still registers the pre-pytest-9 `pytest_pycollect_makemodule`
+# hookspec, which makes pytest 9 refuse to start at all. Drop this pin once RoboStack
+# ships a launch_testing built against pytest 9.
+pytest = ">=8.4,<9"
 
 [feature.ros.pypi-dependencies]
 colcon-cargo = { git = "https://github.com/colcon/colcon-cargo.git" }
@@ -70,6 +74,9 @@ python = ">=3.12.12,<3.13"
 [feature.firmware.tasks]
 setup-toolchain = "cargo install espup && espup install && cargo install espflash probe-rs-tools"
 build = { cmd = "cargo build --release", cwd = "firmware" }
+# Not --all-targets: that ignores `test = false` and tries to build the lib/bin
+# against libtest, which does not exist for xtensa-esp32-none-elf.
+lint = { cmd = "cargo clippy --lib --bins --tests -- -D warnings", cwd = "firmware" }
 flash = { cmd = "cargo run --release", cwd = "firmware" }
 monitor = { cmd = "espflash monitor", cwd = "firmware" }
 firmware-image = { cmd = "make firmware", cwd = "firmware" }

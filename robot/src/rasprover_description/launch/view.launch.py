@@ -1,6 +1,7 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
@@ -9,33 +10,35 @@ from launch_ros.actions import Node
 
 import xacro
 
+
 def generate_launch_description():
 
     # Arguments
     rviz_argument = DeclareLaunchArgument('rviz', default_value='true',
-                          description='Open RViz.')
+                                          description='Open RViz.')
     rsp_argument = DeclareLaunchArgument('rsp', default_value='true',
-                          description='Run robot state publisher node.')
+                                         description='Run robot state publisher node.')
     jsp_argument = DeclareLaunchArgument('jsp', default_value='true',
-                          description='Run joint state publisher node.')
+                                         description='Run joint state publisher node.')
 
     # Obtains rasprover_description's share directory path.
     pkg_rasprover_description = get_package_share_directory('rasprover_description')
 
     # Obtain urdf from xacro files.
-    doc = xacro.process_file(os.path.join(pkg_rasprover_description, 'urdf', 'rasprover.urdf.xacro'))
+    doc = xacro.process_file(
+        os.path.join(pkg_rasprover_description, 'urdf', 'rasprover.urdf.xacro'))
     robot_desc = doc.toprettyxml(indent='  ')
     params = {'robot_description': robot_desc,
               'publish_frequency': 30.0}
 
     # Robot state publisher
     rsp = Node(package='robot_state_publisher',
-                executable='robot_state_publisher',
-                namespace='',
-                output='both',
-                parameters=[params],
-                condition=IfCondition(LaunchConfiguration('rsp'))
-    )
+               executable='robot_state_publisher',
+               namespace='',
+               output='both',
+               parameters=[params],
+               condition=IfCondition(LaunchConfiguration('rsp'))
+               )
 
     # Joint state publisher gui
     jsp_gui = Node(
@@ -50,7 +53,9 @@ def generate_launch_description():
     rviz = Node(
         package='rviz2',
         executable='rviz2',
-        arguments=['-d', os.path.join(pkg_rasprover_description, 'rviz', 'rasprover_description.rviz')],
+        arguments=[
+            '-d',
+            os.path.join(pkg_rasprover_description, 'rviz', 'rasprover_description.rviz')],
         condition=IfCondition(LaunchConfiguration('rviz'))
     )
 

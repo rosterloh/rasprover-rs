@@ -53,11 +53,11 @@ pub fn set_next_ota_slot(ota: &mut OtaUpdater<FlashStorage>) -> Result<(), Error
 
 #[allow(dead_code)]
 pub fn validate_current_ota_slot(ota: &mut OtaUpdater<FlashStorage>) -> Result<(), Error> {
-    if let Ok(state) = ota.current_ota_state() {
-        if state == OtaImageState::New || state == OtaImageState::PendingVerify {
-            info!("Marking current OTA slot as VALID");
-            ota.set_current_ota_state(OtaImageState::Valid).unwrap();
-        }
+    if let Ok(state) = ota.current_ota_state()
+        && (state == OtaImageState::New || state == OtaImageState::PendingVerify)
+    {
+        info!("Marking current OTA slot as VALID");
+        ota.set_current_ota_state(OtaImageState::Valid).unwrap();
     }
 
     Ok(())

@@ -1,15 +1,16 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+
 
 def generate_launch_description():
 
     sim_mode = LaunchConfiguration('sim_mode')
-    
+
     sim_mode_arg = DeclareLaunchArgument(
         'sim_mode',
         default_value='true',
@@ -19,7 +20,7 @@ def generate_launch_description():
 
     pkg_description = FindPackageShare('rasprover_description')
     # pkg_control = FindPackageShare('rasprover_control')
-    
+
     rsp = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([pkg_description, 'launch', 'rsp.launch.py'])
@@ -35,12 +36,12 @@ def generate_launch_description():
     # )
 
     v4l2_camera_node = Node(
-        package="v4l2_camera",
-        executable="v4l2_camera_node",
+        package='v4l2_camera',
+        executable='v4l2_camera_node',
         remappings=[
-            ("/image_raw", "/camera/image_raw")
+            ('/image_raw', '/camera/image_raw')
         ],
-        condition=UnlessCondition(sim_mode) 
+        condition=UnlessCondition(sim_mode)
     )
 
     # camera_capture_node = Node(

@@ -1,11 +1,13 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
-from launch.substitutions import Command, LaunchConfiguration
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+
 
 def generate_launch_description():
 
@@ -16,9 +18,9 @@ def generate_launch_description():
         default_value='true',
         description='Use simulation (Gazebo) if true'
     )
-    
+
     description_pkg_share = get_package_share_directory('rasprover_description')
-    
+
     robot_description_content = Command([
         'xacro ', os.path.join(description_pkg_share, 'urdf', 'rasprover.urdf.xacro'),
         ' sim_mode:=', sim_mode

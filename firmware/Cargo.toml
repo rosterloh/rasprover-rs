@@ -26,6 +26,10 @@ name = "imu_test"
 [lib]
 test = false
 
+[lints.rust]
+# `embedded_test::tests` expands to `#[cfg(rust_analyzer)]` guards.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(rust_analyzer)'] }
+
 [dependencies]
 critical-section = "1.0"
 defmt = "1.0"

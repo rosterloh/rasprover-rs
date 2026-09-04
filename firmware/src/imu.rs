@@ -226,6 +226,7 @@ impl MahonyFilter {
     }
 
     /// 6-DOF fallback (acc + gyr only) used when magnetometer is unavailable.
+    #[allow(clippy::too_many_arguments)] // per-axis sensor components
     fn update_6dof(
         &mut self,
         ax: f32,
@@ -255,6 +256,7 @@ impl MahonyFilter {
         self.euler_angles()
     }
 
+    #[allow(clippy::too_many_arguments)] // per-axis sensor components
     fn apply_correction(
         &mut self,
         gx: &mut f32,
@@ -309,14 +311,7 @@ impl MahonyFilter {
         let q3 = self.q3;
 
         // Clamp asin argument to [-1, 1] to handle floating-point rounding.
-        let sin_pitch = 2.0 * (q0 * q2 - q3 * q1);
-        let sin_pitch = if sin_pitch < -1.0 {
-            -1.0_f32
-        } else if sin_pitch > 1.0 {
-            1.0_f32
-        } else {
-            sin_pitch
-        };
+        let sin_pitch = (2.0 * (q0 * q2 - q3 * q1)).clamp(-1.0_f32, 1.0_f32);
 
         let roll = atan2f(2.0 * (q0 * q1 + q2 * q3), 1.0 - 2.0 * (q1 * q1 + q2 * q2));
         let pitch = asinf(sin_pitch);
@@ -359,6 +354,12 @@ pub struct ImuData {
 pub struct ImuProcessor {
     filters: AxisFilters,
     mahony: MahonyFilter,
+}
+
+impl Default for ImuProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ImuProcessor {
