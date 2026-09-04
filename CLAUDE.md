@@ -5,25 +5,29 @@
 RaspRover-RS is a monorepo for the [Waveshare RaspRover](https://www.waveshare.com/wiki/RaspRover) robot platform:
 
 - `firmware/` — embedded firmware for the Espressif ESP32 DevKit-C (Xtensa) on the ROS Driver Board, using [esp-rtos](https://github.com/esp-rs/esp-hal) with [Embassy](https://embassy.dev/book/). All esp-hal family crates are consumed directly from crates.io — see `firmware/Cargo.toml` for pinned versions.
+- `robot/` — ROS 2 (Lyrical Luth) workspace for the Raspberry Pi host, built with `colcon`.
 - `data/` — mechanical CAD and reference documents for the RaspRover platform.
-
-A ROS 2 workspace for the Raspberry Pi host will live alongside `firmware/` in a future subdirectory.
 
 ## Build Commands
 
-All firmware build commands run from the `firmware/` directory. Standard Cargo is used directly — no meta-build system required.
+Both halves live under one [pixi](https://pixi.sh) workspace (`pixi.toml`), with a separate environment each:
 
 ```bash
-cd firmware
-
-# Build only
-cargo build --release
-
-# Build and flash to connected ESP32
-cargo run --release
+pixi run -e firmware build   # cargo build --release
+pixi run -e firmware flash   # cargo run --release
+pixi run -e firmware lint    # clippy, see below
+pixi run -e ros build        # colcon build --symlink-install
 ```
 
+The firmware tasks are thin wrappers — plain Cargo from `firmware/` works too, provided the `esp`
+toolchain and `xtensa-esp32-elf-gcc` are on `PATH` (see `firmware/esp-activate.sh`).
+
+Do **not** lint with `cargo clippy --all-targets`: it ignores the `test = false` flags on `[lib]` and
+`[[bin]]` and links them against a libtest that does not exist for `xtensa-esp32-none-elf`. The `lint`
+task runs `cargo clippy --lib --bins --tests -- -D warnings`, which covers the same code.
+
 WiFi credentials are configured via environment variables (with fallback defaults in `firmware/.cargo/config.toml`):
+
 ```bash
 export CONFIG_WIFI_NETWORK="your-ssid"
 export CONFIG_WIFI_PASSWORD="your-password"
@@ -32,6 +36,7 @@ export CONFIG_WIFI_PASSWORD="your-password"
 ## Toolchain
 
 This project requires the **ESP Rust toolchain** (not stable/nightly), which supports the Xtensa instruction set used by ESP32:
+
 - Toolchain: `esp` (`RUSTUP_TOOLCHAIN=esp`)
 - Target: `xtensa-esp32-none-elf`
 
@@ -42,6 +47,7 @@ Rust Analyzer is configured via `.vscode/settings.json` with the correct `RUSTFL
 The codebase is `no_std` + `no_main` — standard library and Rust runtime are unavailable. All async code runs in the Embassy executor provided by `esp-rtos`. However, `alloc` **is** available — the heap is configured with `esp_alloc::heap_allocator!`, so `Box`, `Vec`, etc. work fine.
 
 **Entry point pattern:**
+
 ```rust
 #![no_main]
 #![no_std]
@@ -59,15 +65,18 @@ async fn main(spawner: Spawner) {
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 98768);
 
     let timg0 = TimerGroup::new(p.TIMG0);
-    esp_rtos::start(timg0.timer0);
+    let sw_int = SoftwareInterruptControl::new(p.SW_INTERRUPT);
+    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
     // application code
 }
 ```
 
-`esp_rtos::start(...)` must be called **inside** the async main function after heap init. `SoftwareInterruptControl` is no longer required — `esp_rtos::start` takes only the timer.
+`esp_rtos::start(...)` must be called **inside** the async main function after heap init, and takes a
+timer plus a software interrupt.
 
 **Key dependency structure:**
+
 - `esp-rtos` — async runtime (Embassy executor + timer integration)
 - `esp-radio` — WiFi via `esp_radio::wifi`
 - `embassy-net` — TCP/IP networking
@@ -79,6 +88,7 @@ async fn main(spawner: Spawner) {
 ## Logging
 
 Uses `defmt` structured logging via RTT. Log level is controlled by the `DEFMT_LOG` environment variable (default: `info` in `firmware/.cargo/config.toml`). Import macros directly from `defmt`:
+
 ```rust
 use defmt::{debug, error, info, warn};
 use panic_rtt_target as _;
@@ -86,6 +96,7 @@ info!("message {}", value);
 ```
 
 Initialize RTT at the top of `main` before any logging:
+
 ```rust
 rtt_target::rtt_init_defmt!();
 ```
@@ -94,7 +105,8 @@ The panic handler is provided by `panic-rtt-target`. The `rtt-target` crate (wit
 
 ## Peripheral Patterns
 
-**Peripherals struct** (`firmware/src/pins.rs`) is a plain Rust struct. Use concrete peripheral types from `esp_hal::peripherals` for typed pins and `AnyPin<'static>` (via `.into()`) for interchangeable pins:
+**Peripherals struct** (`firmware/src/board.rs`) is a plain Rust struct. Use concrete peripheral types from `esp_hal::peripherals` for typed pins and `AnyPin<'static>` (via `.into()`) for interchangeable pins:
+
 ```rust
 pub struct Peripherals {
     pub i2c_sda: GPIO32<'static>,
@@ -111,9 +123,11 @@ pub struct Peripherals {
 **Self-referential HAL structs**: `Channel<'a, LowSpeed>` holds a `&'a dyn TimerIFace` so the timer must outlive the channel. Use `Box::leak(Box::new(timer))` to get a `&'static Timer` — this is safe given the always-available heap.
 
 **I2C**: Use `esp_hal::i2c::master::I2c` directly:
+
 ```rust
 I2c::new(i2c0, config).unwrap().with_sda(sda).with_scl(scl).into_async()
 ```
+
 Wrap with `embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice` for sharing across tasks.
 
 **Rng**: `Rng::new()` — no arguments.
@@ -121,19 +135,24 @@ Wrap with `embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice` for sharing
 ## WiFi Pattern
 
 WiFi is initialized in `network::init()`:
+
 ```rust
-let (controller, interfaces) = esp_radio::wifi::new(wifi, Config::default()).unwrap();
-let wifi_device: WifiDevice<'static> = interfaces.station;
+let (controller, interfaces) = esp_radio::wifi::new(wifi, Default::default()).unwrap();
+let wifi_device: Interface<'static> = interfaces.station;
 ```
+
 - `controller.is_connected()` — check connection status
-- `controller.set_config(&ModeConfig::Station(config))` — configure
-- `StationConfig::default().with_ssid(String).with_password(String)` — uses `alloc::string::String`
+- `controller.set_config(&Config::Station(station_config))` — configure, where `Config` is
+  `esp_radio::wifi::Config`
+- `StationConfig::default().with_ssid(&str).with_password(alloc::string::String)` — note the two
+  argument types differ
 
 ## Module Design Patterns
 
 **Encapsulate subsystems as spawned tasks** — each major subsystem (network, display, etc.) owns its lifecycle via `#[embassy_executor::task]` functions and a dedicated `src/<subsystem>.rs` module. `main` coordinates but does not inline subsystem logic.
 
 **Use `Watch` for state broadcasting** — `embassy_sync::watch::Watch` is the preferred primitive for publishing subsystem state to other tasks:
+
 - Delivers the **current** value to late subscribers (no missed events on join)
 - `try_get()` enables non-blocking polling in tight loops
 - Declare as a `pub static` in the owning module; consumers call `.receiver().unwrap()`
@@ -151,6 +170,7 @@ if let Some(state) = net_rx.try_get() { /* react */ }
 **Carry data in enum variants** — state enums should embed associated payload directly (e.g. `Up(String<18>)`) rather than storing it separately.
 
 **Track last-seen state to avoid redundant work** — consumers that perform side effects should cache the last processed state and only act when it changes:
+
 ```rust
 let mut last_state: Option<NetworkState> = None;
 if Some(&state) != last_state.as_ref() {
